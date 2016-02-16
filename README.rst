@@ -1,7 +1,7 @@
 ..  image:: https://raw.githubusercontent.com/pyzos/pyzos/master/Doc/images/pyzos_banner_small.png
 
-Python ZOS API 
-----------------
+Python Zemax OpticStudio API 
+----------------------------
 
 Current revision
 ''''''''''''''''
@@ -31,8 +31,8 @@ Dependencies
 
 The core PyZOS library only depends on the standard Python Library. 
 
-1. Python 2.7 / Python 3.3 and above; 32/64 bit version
-2. [PyWin32](http://sourceforge.net/projects/pywin32/)
+1. Python 3.3 and above / Python 2.7; 32/64 bit version
+2. `PyWin32 <http://sourceforge.net/projects/pywin32/>`__
 
 All the dependencies can be installed by using the Anaconda Python distribution.
 

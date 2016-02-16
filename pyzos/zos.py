@@ -12,6 +12,7 @@ from __future__ import division, print_function
 
 import win32com.client as _comclient
 import warnings as _warnings
+from pyzos.const import Const
 from pyzos.zosutils import (ZOSPropMapper as _ZOSPropMapper, 
                             replicate_methods as _replicate_methods,
                             wrapped_zos_object as wrapped_zos_object)
@@ -40,7 +41,7 @@ class _PyZOSApp(object):
         return cls.app
 
 #%%
-class OptSys(object):
+class OpticalSystem(object):
     """Wrapper for IOpticalSystem interface
     """
     _instantiated = False
@@ -58,14 +59,14 @@ class OptSys(object):
         """ mode : sequential (0) or non-sequential (1)
         """
         
-        if OptSys._instantiated:
-            self._iopticalsystem = OptSys._pyzosapp.CreateNewSystem(mode) # wrapped object
+        if OpticalSystem._instantiated:
+            self._iopticalsystem = OpticalSystem._pyzosapp.CreateNewSystem(mode) # wrapped object
         else:
-            OptSys._pyzosapp = _PyZOSApp()               # wrapped object
-            self._iopticalsystem = OptSys._pyzosapp.GetSystemAt(0) # PrimarySystem
+            OpticalSystem._pyzosapp = _PyZOSApp()               # wrapped object
+            self._iopticalsystem = OpticalSystem._pyzosapp.GetSystemAt(0) # PrimarySystem
             if mode == 1:
                 self._iopticalsystem.MakeNonSequential()
-            OptSys._instantiated = True
+            OpticalSystem._instantiated = True
         
         ## patch methods from IOpticalSystem to the instance
         _replicate_methods(self._iopticalsystem, self)
@@ -75,7 +76,7 @@ class OptSys(object):
            `_replicate_methods` (shouldn't happen generally), or 
            property calls that are not managed.
         """
-        #print('__getattr__ in OptSys called for', attrname) ##TODO: remove print later
+        #print('__getattr__ in OpticalSystem called for', attrname) ##TODO: remove print later
         return getattr(self._iopticalsystem, attrname)
     
     @property
