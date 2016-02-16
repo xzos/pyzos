@@ -12,13 +12,12 @@ from __future__ import division, print_function
 
 import win32com.client as _comclient
 import warnings as _warnings
-from pyzos.const import Const
 from pyzos.zosutils import (ZOSPropMapper as _ZOSPropMapper, 
                             replicate_methods as _replicate_methods,
                             wrapped_zos_object as wrapped_zos_object)
 
 #%%
-
+Const = None  # Constants (placeholder)
 #%%
 class _ConnectionError(Exception): pass 
 class _InitializationError(Exception): pass
@@ -30,6 +29,7 @@ class _PyZOSApp(object):
     connect = None
     
     def __new__(cls):
+        global Const
         if not cls.app:
             #TODO: Add relavent exceptions
             # ensure win32com support files for ZOSAPI_Interfaces are available,
@@ -38,6 +38,7 @@ class _PyZOSApp(object):
             edispatch = _comclient.gencache.EnsureDispatch
             cls.connect = edispatch('ZOSAPI.ZOSAPI_Connection')
             cls.app = cls.connect.CreateNewApplication()
+            Const = type('Const', (), _comclient.constants.__dicts__[0]) # Constants class
         return cls.app
 
 #%%

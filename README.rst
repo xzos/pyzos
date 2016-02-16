@@ -9,10 +9,12 @@ The current code base (version 0.0.1) is a working PROTOTYPE!
 
 Philosophy / Design Goals
 '''''''''''''''''''''''''
-The ZOS API Interface is already excellent tool. However, using the ZOS API in with Python
+The ZOS-API Interface is already excellent tool. However, using the ZOS API in with Python
 is not as easy. The philosophy of PyZOS is to ease the use ZOS API with Python and at the 
 same time without limiting or obscuring the ZOS API in any way. In addition, PyZOS aims to
 provide a framework that is easily extendable. 
+
+The enhancements to ZOS-API using PyZOS library are documented in this (work in progress) `Jupyter notebook <http://nbviewer.jupyter.org/github/pyzos/pyzos/blob/master/Examples/jupyter_notebooks/00_Enhancing_the_ZOS_API_Interface.ipynb>`__.   
 
 
 
@@ -20,9 +22,13 @@ Example usage
 '''''''''''''    
 .. code:: python
 
-    from pyzos import zos    
-    optical_system = zos.OptSys()
-             
+    import pyzos.zos as zos   
+    osys = zos.OpticalSystem()
+    sdata = osys.pSystemData
+    sdata.pAperture.pApertureValue = 40
+    sdata.pFields.AddField(0, 2.0, 1.0)
+    wave = zos.Const.WavelengthPreset_d_0p587
+    sdata.pWavelengths.SelectWavelengthPreset(wave)
  
 
 
