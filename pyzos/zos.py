@@ -131,4 +131,4 @@ class OptSys(object):
     # Extra added helper methods 
     def zDummyOpticalSystemsMethod(self):
         #TODO: remove this method in production code
-        print('Mock Optical System method!')
+        print('Dummy Optical System method!')

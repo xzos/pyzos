@@ -11,9 +11,14 @@ import sys as _sys
 import warnings as _warnings
 
 def get_callable_method_dict(obj):
-    """returns a dictionary of callable methods of object `obj`
-    note: the function only returns the callable attributes that 
-    are listed by dir() function. COM object properties are not returned
+    """Returns a dictionary of callable methods of object `obj`.
+
+    @param obj: ZOS API Python COM object
+    @return: a dictionary of callable methods
+    
+    Notes: 
+    the function only returns the callable attributes that are listed by dir() 
+    function. Properties are not returned.
     """
     methodDict = {}
     for methodStr in dir(obj):
@@ -23,20 +28,19 @@ def get_callable_method_dict(obj):
     return methodDict
 
 def replicate_methods(srcObj, dstObj):
-    """replicate callable methods from a ZOS COM object `srcObj` 
-    to `dstObj` (generally a wrapper object). 
+    """Replicate callable methods from a `srcObj` to `dstObj` (generally a wrapper object). 
     
-    `srcObj` and `dstObj` are instances of the same type.
+    @param srcObj: source object
+    @param dstObj: destination object of the same type.
+    @return : none
     
-    Note: once the methods are mapped from the srcObj to the
-    dstObj, the method calls will not get "routed" through `__getattr__`
-    method (if implemented) in `type(dstObj)` class.
-    
-    Implementer note:
-    an example of what a 'key' and 'value' looks like:
-    key: MakeSequential
-    value: <bound method IOpticalSystem.MakeSequential of 
-    <win32com.gen_py.ZOSAPI_Interfaces.IOpticalSystem instance at 0x77183968>>
+    Implementer notes: 
+    1. Once the methods are mapped from the `srcObj` to the `dstObj`, the method calls will 
+       not get "routed" through `__getattr__` method (if implemented) in `type(dstObj)` class.
+    2. An example of what a 'key' and 'value' look like:
+       key: MakeSequential
+       value: <bound method IOpticalSystem.MakeSequential of 
+              <win32com.gen_py.ZOSAPI_Interfaces.IOpticalSystem instance at 0x77183968>>
     """
     # prevent methods that we intend to specialize from being mapped.
     # the specialized (overridden) methods are methods with the same
@@ -51,12 +55,11 @@ def replicate_methods(srcObj, dstObj):
             setattr(dstObj, key, value)
         
 def get_properties(zos_obj):
-    """returns a lists of properties bound to the COM object
-    
-    Returns
-    ------
-    prop_get : list of properties that are only getters
-    prop_set : list of properties that are both getters and setters
+    """Returns a lists of properties bound to the object `zos_obj`
+
+    @param zos_obj: ZOS API Python COM object
+    @return prop_get: list of properties that are only getters
+    @return prop_set: list of properties that are both getters and setters
     """
     prop_get = set(zos_obj._prop_map_get_.keys())
     prop_set = set(zos_obj._prop_map_put_.keys())
@@ -69,8 +72,8 @@ def get_properties(zos_obj):
 
 #%%
 class ZOSPropMapper(object):
-    """descriptor for mapping ZOS object getter and setter 
-       properties to corresponding wrapper classes
+    """Descriptor for mapping ZOS object getter and setter properties to 
+    corresponding wrapper classes
     """
     def __init__(self, zos_interface_attr, property_name, setter=False):
         """
@@ -100,8 +103,10 @@ class ZOSPropMapper(object):
 # of code (especially vestigial code) lingering around.
 
 def managed_wrapper_class_factory(zos_obj):
-    """
-    zos_obj : ZOS API object
+    """Creates and returns a wrapper class of a ZOS object, exposing the ZOS objects 
+    methods and propertis, and patching custom specialized attributes
+
+    @param zos_obj: ZOS API Python COM object
     """
     cls_name = repr(zos_obj).split()[0].split('.')[-1]  # protocol to be followed
     dispatch_attr = '_' + cls_name.lower()   # protocol to be followed
@@ -149,10 +154,14 @@ except ImportError:
     return type(cls_name, (), cdict) 
 
 def wrapped_zos_object(zos_obj):
-    """helper function to wrap ZOS API COM objects. 
-    The function dynamically creates a wrapped class with all the 
-    provided methods, properties, and custom methods monkey patched, and then
-    returns an instance of it.
+    """Helper function to wrap ZOS API COM objects. 
+
+    @param zos_obj : ZOS API Python COM object
+    @return: instance of the wrapped ZOS API class.
+
+    Notes:
+    The function dynamically creates a wrapped class with all the provided methods, 
+    properties, and custom methods monkey patched; and returns an instance of it.
     """
     Class = managed_wrapper_class_factory(zos_obj)
     return Class(zos_obj)
