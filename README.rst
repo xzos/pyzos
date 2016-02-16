@@ -1,4 +1,4 @@
-..  image:: https://raw.githubusercontent.com/pyzos/pyzos/master/Doc/images/pyzos_banner.png
+..  image:: https://raw.githubusercontent.com/pyzos/pyzos/master/Doc/images/pyzos_banner_small.png
 
 Python ZOS API 
 ----------------
