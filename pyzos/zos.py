@@ -131,6 +131,27 @@ class OpticalSystem(object):
         return wrapped_zos_object(self._iopticalsystem.Tools)
     
     # Extra added helper methods 
-    def zDummyOpticalSystemsMethod(self):
-        #TODO: remove this method in production code
-        print('Dummy Optical System method!')
+    def zInsertNewSurfaceAt(self, surfNum):
+        if self.pMode == 0:
+            lde = self.pLDE
+            lde.InsertNewSurfaceAt(surfNum)
+        else:
+            raise NotImplementedError, 'function not implemented for non-sequential mode'
+
+    def zSetSurfaceData(self, surfNum, radius=None, thick=None, material=None, semidia=None, conic=None, comment=None):
+        if self.pMode == 0: # sequential mode
+            surf = self.pLDE.GetSurfaceAt(surfNum)
+            if radius is not None:
+                surf.pRadius = radius
+            if thick is not None:
+                surf.pThickness = thick
+            if material is not None:
+                surf.pMaterial = material
+            if semidia is not None:
+                surf.pSemiDiameter = semidia
+            if conic is not None:
+                surf.pConic = conic
+            if comment is not None:
+                surf.pComment = comment
+        else:
+            raise NotImplementedError, 'function not implemented for non-sequential mode'
