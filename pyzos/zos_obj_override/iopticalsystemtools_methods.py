@@ -18,7 +18,9 @@ from pyzos.zosutils import wrapped_zos_object as _wrapped_zos_object
 # Overridden methods
 # ------------------
 def OpenLocalOptimization(self):
-    return _wrapped_zos_object(self._iopticalsystemtools.OpenLocalOptimization())
+    local_opt = self._iopticalsystemtools.OpenLocalOptimization()
+    if local_opt: # local_opt is None if the Local Optimization Tool is already open
+        return _wrapped_zos_object(local_opt)
 
 
 
