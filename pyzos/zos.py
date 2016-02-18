@@ -10,20 +10,22 @@
 """
 from __future__ import division, print_function
 import os as _os
+import collections as _co
 import win32com.client as _comclient
 import warnings as _warnings
 from pyzos.zosutils import (ZOSPropMapper as _ZOSPropMapper, 
                             replicate_methods as _replicate_methods,
                             wrapped_zos_object as wrapped_zos_object)
 
-#%%
+#%% Global variables
 Const = None  # Constants (placeholder)
-#%%
+
+#%% Custom Exceptions
 class _ConnectionError(Exception): pass 
 class _InitializationError(Exception): pass
 class _ZOSSystemError(Exception): pass
 
-#%%
+#%% ZOS API Application Class
 class _PyZOSApp(object):
     app = None
     connect = None
@@ -41,7 +43,7 @@ class _PyZOSApp(object):
             Const = type('Const', (), _comclient.constants.__dicts__[0]) # Constants class
         return cls.app
 
-#%%
+#%% Optical System Class
 class OpticalSystem(object):
     """Wrapper for IOpticalSystem interface
     """
@@ -148,7 +150,18 @@ class OpticalSystem(object):
         """Gets an interface used to run various tools on the optical system (wrapped)"""
         return wrapped_zos_object(self._iopticalsystem.Tools)
     
-    # Extra added helper methods 
+    #%% Extra/ Custom methods 
+    def zGetSurfaceData(self, surfNum):
+        """Return surface data"""
+        if self.pMode == 0: # Sequential mode
+            surf_data = _co.namedtuple('surface_data', ['radius', 'thick', 'material', 'semidia', 
+                                                        'conic', 'comment'])
+            surf = self.pLDE.GetSurfaceAt(surfNum)
+            return surf_data(surf.pRadius, surf.pThickness, surf.pMaterial, surf.pSemiDiameter,
+                             surf.pConic, surf.pComment)
+        else:
+            raise NotImplementedError('Function not implemented for non-sequential mode')
+
     def zInsertNewSurfaceAt(self, surfNum):
         if self.pMode == 0:
             lde = self.pLDE
@@ -156,8 +169,10 @@ class OpticalSystem(object):
         else:
             raise NotImplementedError('Function not implemented for non-sequential mode')
 
-    def zSetSurfaceData(self, surfNum, radius=None, thick=None, material=None, semidia=None, conic=None, comment=None):
-        if self.pMode == 0: # sequential mode
+    def zSetSurfaceData(self, surfNum, radius=None, thick=None, material=None, semidia=None, 
+                        conic=None, comment=None):
+        """Sets surface data"""
+        if self.pMode == 0: # Sequential mode
             surf = self.pLDE.GetSurfaceAt(surfNum)
             if radius is not None:
                 surf.pRadius = radius
