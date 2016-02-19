@@ -42,11 +42,10 @@ def replicate_methods(srcObj, dstObj):
        value: <bound method IOpticalSystem.MakeSequential of 
               <win32com.gen_py.ZOSAPI_Interfaces.IOpticalSystem instance at 0x77183968>>
     """
-    # prevent methods that we intend to specialize from being mapped.
-    # the specialized (overridden) methods are methods with the same
-    # name as the corresponding method in the source ZOS API COM object
-    # written for each ZOS API COM object in an associated python script
-    # such as i_analyses_methods.py for I_Analyses
+    # prevent methods that we intend to specialize from being mapped. The specialized 
+    # (overridden) methods are methods with the same name as the corresponding method in 
+    # the source ZOS API COM object written for each ZOS API COM object in an associated 
+    # python script such as i_analyses_methods.py for I_Analyses
     overridden_methods = get_callable_method_dict(type(dstObj)).keys()
     #overridden_attrs = [each for each in type(dstObj).__dict__.keys() if not each.startswith('_')]
     #print('overridden_methods:', overridden_methods)
@@ -72,21 +71,17 @@ def get_properties(zos_obj):
 
 #%%
 class ZOSPropMapper(object):
-    """Descriptor for mapping ZOS object getter and setter properties to 
-    corresponding wrapper classes
+    """Descriptor for mapping ZOS object properties to corresponding wrapper classes
     """
     def __init__(self, zos_interface_attr, property_name, setter=False):
         """
-        @zos_interface_attr is the attribute used to dispatch method/property
-         calls to the zos_object (it hold the zos_object)
-        @propname is a string like 'SystemName' for IOpticalSystem
-        if `setter` is False, a read-only data descriptor is created
+        @param zos_interface_attr : attribute used to dispatch method/property calls to 
+        the zos_object (it hold the zos_object)
+        @param propname : string, like 'SystemName' for IOpticalSystem
+        @param setter : if False, a read-only data descriptor is created
         """
-        self.property_name = property_name  # property_name is a string like 'SystemName' 
-                                            # for IOpticalSystem
-        self.zos_interface_attr = zos_interface_attr  # TODO!! This one probably needs to  
-                                        # be a class attribute with weakrefkey dict
-                                        # otherwise a second system may interfere
+        self.property_name = property_name  # property_name is a string like 'SystemName' for IOpticalSystem
+        self.zos_interface_attr = zos_interface_attr  
         self.setter = setter
 
     def __get__(self, obj, objtype):
@@ -99,17 +94,14 @@ class ZOSPropMapper(object):
             raise AttributeError("Can't set {}".format(self.property_name))
             
 
-#TODO## Review the class several times to ensure that there is nothing extra bit 
-# of code (especially vestigial code) lingering around.
-
 def managed_wrapper_class_factory(zos_obj):
     """Creates and returns a wrapper class of a ZOS object, exposing the ZOS objects 
     methods and propertis, and patching custom specialized attributes
 
     @param zos_obj: ZOS API Python COM object
     """
-    cls_name = repr(zos_obj).split()[0].split('.')[-1]  # protocol to be followed
-    dispatch_attr = '_' + cls_name.lower()   # protocol to be followed
+    cls_name = repr(zos_obj).split()[0].split('.')[-1]  
+    dispatch_attr = '_' + cls_name.lower()  # protocol to be followed to store the ZOS COM object
     
     cdict = {}  # class dictionary
     
@@ -124,18 +116,17 @@ def managed_wrapper_class_factory(zos_obj):
         
         # dispatcher attribute
         cls_name = repr(zos_obj).split()[0].split('.')[-1] 
-        dispatch_attr = '_' + cls_name.lower() # protocol to be followed
+        dispatch_attr = '_' + cls_name.lower()    # protocol to be followed to store the ZOS COM object
         self.__dict__[dispatch_attr] = zos_obj
-        self._dispatch_attr_value = dispatch_attr 
+        self._dispatch_attr_value = dispatch_attr # used in __getattr__
         
         # patch the methods
         replicate_methods(zos_obj, self)
-        
+    
+    # Provide a way to make property calls without the prefix p, but don't try to wrap the returned object 
     def __getattr__(self, attrname):
-        #print('__getattr__ in managed instance called for', attrname)
         return getattr(self.__dict__[self._dispatch_attr_value], attrname)
-    
-    
+        
     cdict['__init__'] = __init__
     cdict['__getattr__'] = __getattr__
     

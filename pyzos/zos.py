@@ -59,9 +59,9 @@ class OpticalSystem(object):
     pSystemName = _ZOSPropMapper('_iopticalsystem', 'SystemName', setter=True)
     
     def __init__(self, mode=0):
-        """ mode : sequential (0) or non-sequential (1)
+        """Returns an instance of Optical System
+        @param mode : sequential (0) or non-sequential (1)
         """
-        
         if OpticalSystem._instantiated:
             self._iopticalsystem = OpticalSystem._pyzosapp.CreateNewSystem(mode) # wrapped object
         else:
@@ -73,16 +73,11 @@ class OpticalSystem(object):
         
         ## patch methods from IOpticalSystem to the instance
         _replicate_methods(self._iopticalsystem, self)
-            
+
+    # Provide a way to make property calls without the prefix p, but don't try to wrap the returned object            
     def __getattr__(self, attrname):
-        """handle any method calls that were not accounted for by 
-           `_replicate_methods` (shouldn't happen generally), or 
-           property calls that are not managed.
-        """
-        #print('__getattr__ in OpticalSystem called for', attrname) ##TODO: remove print later
         return getattr(self._iopticalsystem, attrname)
     
-
     #%% Overridden Methods
     def SaveAs(self, filename):
         """Saves the current system to the specified file. 
