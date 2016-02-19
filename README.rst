@@ -9,13 +9,23 @@ The current code base (version 0.0.1) is a working PROTOTYPE!
 
 Philosophy / Design Goals
 '''''''''''''''''''''''''
-The ZOS-API Interface is already excellent tool. However, using the ZOS API in with Python
-is not as easy. The philosophy of PyZOS is to ease the use ZOS API with Python and at the 
-same time without limiting or obscuring the ZOS API in any way. In addition, PyZOS aims to
-provide a framework that is easily extendable. 
+The ZOS-API Interface is already an excellent tool. However, interfacing the ZOS-API with 
+Python using PyWin32 creates some problems. For e.g., the large set of *property* attributes 
+are not introspectable, several objects require appropriate type casting before use, and 
+the interface is quite complex (albeit flexible) that require a significant amount of 
+coding to do even very simple tasks. 
 
-The enhancements to ZOS-API using PyZOS library are documented in this (work in progress) `Jupyter notebook <http://nbviewer.jupyter.org/github/pyzos/pyzos/blob/master/Examples/jupyter_notebooks/00_Enhancing_the_ZOS_API_Interface.ipynb>`__.   
+The philosophy behind PyZOS is to make ZOS-API easier to use with Python by:
 
+1. providing better introspection  
+2. reduce complexity by
+     * providing a set of helper methods that encapsulate common tasks
+     * allowing helper methods to be easily added to ZOS objects for custom tasks
+     * taking care of type casting of ZOS objects
+3. do all the above without limiting or obscuring the ZOS-API in any way. 
+
+These enhancements to ZOS-API using PyZOS library are documented in this (work in progress) 
+`Jupyter notebook <http://nbviewer.jupyter.org/github/pyzos/pyzos/blob/master/Examples/jupyter_notebooks/00_Enhancing_the_ZOS_API_Interface.ipynb>`__.   
 
 
 Example usage
