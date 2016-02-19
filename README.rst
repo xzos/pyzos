@@ -19,9 +19,9 @@ The philosophy behind PyZOS is to make ZOS-API easier to use with Python by:
 
 1. providing better introspection  
 2. reduce complexity by
-     * providing a set of helper methods that encapsulate common tasks
-     * allowing helper methods to be easily added to ZOS objects for custom tasks
-     * taking care of type casting of ZOS objects
+    * providing a set of helper methods that encapsulate common tasks
+    * allowing helper methods to be easily added to ZOS objects for custom tasks
+    * taking care of type casting of ZOS objects
 3. do all the above without limiting or obscuring the ZOS-API in any way. 
 
 These enhancements to ZOS-API using PyZOS library are documented in this (work in progress) 
@@ -39,6 +39,7 @@ Example usage
     sdata.pFields.AddField(0, 2.0, 1.0)
     wave = zos.Const.WavelengthPreset_d_0p587
     sdata.pWavelengths.SelectWavelengthPreset(wave)
+    ...
  
 
 
