@@ -10,12 +10,15 @@
 """
 from __future__ import division, print_function
 import os as _os
+import sys as _sys
 import collections as _co
 import win32com.client as _comclient
 import warnings as _warnings
 from pyzos.zosutils import (ZOSPropMapper as _ZOSPropMapper, 
                             replicate_methods as _replicate_methods,
                             wrapped_zos_object as wrapped_zos_object)
+import pyzos.ddeclient as _dde
+
 
 #%% Global variables
 Const = None  # Constants (placeholder)
@@ -24,6 +27,147 @@ Const = None  # Constants (placeholder)
 class _ConnectionError(Exception): pass 
 class _InitializationError(Exception): pass
 class _ZOSSystemError(Exception): pass
+
+
+#%% Module helper functions
+def _get_python_version():
+    return _sys.version_info[0]
+
+
+#%% _PyZDDE class (stripped down)
+class _PyZDDE(object):
+    """Class for communicating with Zemax using DDE"""
+    chNum = -1   
+    liveCh = 0  
+    server = 0    
+    
+    def __init__(self):
+        _PyZDDE.chNum += 1   
+        self.appName = "ZEMAX" + str(_PyZDDE.chNum) if _PyZDDE.chNum > 0 else "ZEMAX"
+        self.connection = False  
+
+    def zDDEInit(self):
+        """Initiates DDE link with Zemax server"""
+        self.pyver = _get_python_version()
+        # do this only one time or when there is no channel
+        if _PyZDDE.liveCh==0:
+            try:
+                _PyZDDE.server = _dde.CreateServer()
+                _PyZDDE.server.Create("ZCLIENT")   
+            except Exception as err:
+                _sys.stderr.write("{}: DDE server may be in use!".format(str(err)))
+                return -1
+        # Try to create individual conversations for each ZEMAX application.
+        self.conversation = _dde.CreateConversation(_PyZDDE.server)
+        try:
+            self.conversation.ConnectTo(self.appName, " ")
+        except Exception as err:
+            _sys.stderr.write("ERROR: {}.\nZEMAX may not be running!\n".format(str(err)))
+            # should close the DDE server if it exist
+            self.zDDEClose()
+            return -1
+        else:
+            _PyZDDE.liveCh += 1 
+            self.connection = True
+            return 0
+
+    def zDDEClose(self):
+        """Close the DDE link with Zemax server"""
+        if _PyZDDE.server and not _PyZDDE.liveCh:
+            _PyZDDE.server.Shutdown(self.conversation)
+            _PyZDDE.server = 0
+        elif _PyZDDE.server and self.connection and _PyZDDE.liveCh == 1:
+            _PyZDDE.server.Shutdown(self.conversation)
+            self.connection = False
+            self.appName = ''
+            _PyZDDE.liveCh -= 1  
+            _PyZDDE.server = 0  
+        elif self.connection:  
+            _PyZDDE.server.Shutdown(self.conversation)
+            self.connection = False
+            self.appName = ''
+            _PyZDDE.liveCh -= 1
+        return 0
+
+    def setTimeout(self, time):
+        """Set global timeout value, in seconds, for all DDE calls"""
+        self.conversation.SetDDETimeout(round(time))
+        return self.conversation.GetDDETimeout()
+
+    def _sendDDEcommand(self, cmd, timeout=None):
+        """Send command to DDE client"""
+        reply = self.conversation.Request(cmd, timeout)
+        if self.pyver > 2:
+            reply = reply.decode('ascii').rstrip()
+        return reply
+
+    def __del__(self):
+        self.zDDEClose()
+        
+    def zGetFile(self):
+        """Returns the full name of the lens file in DDE server"""
+        reply = self._sendDDEcommand('GetFile')
+        return reply.rstrip()
+               
+    def zGetRefresh(self):
+        """Copy lens data from the LDE into the Zemax DDE server """
+        reply = None
+        reply = self._sendDDEcommand('GetRefresh')
+        if reply:
+            return int(reply) #Note: Zemax returns -1 if GetRefresh fails.
+        else:
+            return -998
+
+    def zGetUpdate(self):
+        """Update the lens"""
+        status,ret = -998, None
+        ret = self._sendDDEcommand("GetUpdate")
+        if ret != None:
+            status = int(ret)  #Note: Zemax returns -1 if GetUpdate fails.
+        return status
+            
+    def zGetVersion(self):
+        """Get the version of Zemax """
+        return int(self._sendDDEcommand("GetVersion"))
+        
+    def zLoadFile(self, fileName, append=None):
+        """Loads a zmx file into the DDE server"""
+        reply = None
+        if append:
+            cmd = "LoadFile,{},{}".format(fileName, append)
+        else:
+            cmd = "LoadFile,{}".format(fileName)
+        reply = self._sendDDEcommand(cmd)
+        if reply:
+            return int(reply) #Note: Zemax returns -999 if update fails.
+        else:
+            return -998
+        
+    def zPushLens(self, update=None, timeout=None):
+        """Copy lens in the Zemax DDE server into LDE"""
+        reply = None
+        if update == 1:
+            reply = self._sendDDEcommand('PushLens,1', timeout)
+        elif update == 0 or update is None:
+            reply = self._sendDDEcommand('PushLens,0', timeout)
+        else:
+            raise ValueError('Invalid value for flag')
+        if reply:
+            return int(reply)   # Note: Zemax returns -999 if push lens fails
+        else:
+            return -998
+
+    def zPushLensPermission(self):
+        status = None
+        status = self._sendDDEcommand('PushLensPermission')
+        return int(status)
+
+    def zSaveFile(self, fileName):
+        """Saves the lens currently loaded in the server to a Zemax file """
+        cmd = "SaveFile,{}".format(fileName)
+        reply = self._sendDDEcommand(cmd)
+        return int(float(reply.rstrip()))
+
 
 #%% ZOS API Application Class
 class _PyZOSApp(object):
