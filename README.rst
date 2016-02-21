@@ -17,22 +17,19 @@ The ZOS-API is an excellent interface for OpticStudio. However, using the ZOS CO
 Python through PyWin32 creates some problems: 
 
 * the large set of *property* attributes of the ZOS objects are not introspectable, 
-* several objects require appropriate type casting before use, and 
-* the interface is quite complex (albeit flexible), which requires a significant amount of 
-coding even for very simple tasks. 
-
-Additionally, the ZOS-API functions only in standalone (headless) mode in Python. This 
-headless mode prevents one to communicate with an already running OpticStudio user 
-interface application and observe the changes made to the design instantly.   
+* several interface objects require appropriate type casting before use, and 
+* the interface is quite complex (albeit flexible) requiring a significant amount of coding.
+* ZOS-API only works in standalone (headless) mode. This prevents one to interact with a 
+  running OpticStudio user-interface and observe changes made to the design instantly.   
 
 Solutions
 ~~~~~~~~~
 
 The philosophy behind PyZOS is to make ZOS-API easier to use in Python by:
 
-1. enabling interactivity with a running OpticStudio user-interface ([see demo](https://www.youtube.com/watch?v=ot5CrjMXc_w))
+1. enabling interactivity with a running OpticStudio user-interface (`see demo <https://www.youtube.com/watch?v=ot5CrjMXc_w>`__)
 2. providing better introspection of objects  
-3. reduce complexity by
+3. reducing complexity by
   * providing a set of helper methods that encapsulates common tasks
   * allowing helper methods to be easily coupled to existing ZOS objects for custom functions
   * managing appropriate type casting of ZOS objects
@@ -47,7 +44,7 @@ Example usage
 .. code:: python
 
     import pyzos.zos as zos   
-    osys = zos.OpticalSystem(sync_ui=True) # Turn on interactivity with a running OpticStudio user-interface application
+    osys = zos.OpticalSystem(sync_ui=True) # enable interactivity with a running UI
     sdata = osys.pSystemData
     sdata.pAperture.pApertureValue = 40
     sdata.pFields.AddField(0, 2.0, 1.0)
