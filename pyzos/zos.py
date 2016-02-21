@@ -10,12 +10,17 @@
 """
 from __future__ import division, print_function
 import os as _os
+import sys as _sys
 import collections as _co
 import win32com.client as _comclient
+import tempfile as _tempfile
+import time as _time
 import warnings as _warnings
 from pyzos.zosutils import (ZOSPropMapper as _ZOSPropMapper, 
                             replicate_methods as _replicate_methods,
                             wrapped_zos_object as wrapped_zos_object)
+import pyzos.ddeclient as _dde
+
 
 #%% Global variables
 Const = None  # Constants (placeholder)
@@ -24,6 +29,179 @@ Const = None  # Constants (placeholder)
 class _ConnectionError(Exception): pass 
 class _InitializationError(Exception): pass
 class _ZOSSystemError(Exception): pass
+
+
+#%% Module helper functions
+def _get_python_version():
+    return _sys.version_info[0]
+    
+def _get_constants_dict():
+    const_dict = _comclient.constants.__dicts__[0]
+    if _get_python_version() == 2:
+        return const_dict
+    else:
+        return dict(const_dict)
+    
+def _get_sync_ui_filename():
+    temp_dir = _tempfile.gettempdir()
+    temp_file = 'pyzos_ui_sync_file_{}.zmx'.format(_os.getpid())
+    return _os.path.join(temp_dir, temp_file)
+
+def _get_new_dde_link():
+    ln = _PyZDDE()
+    ln.zDDEInit()
+    return ln
+    
+def _delete_file(fileName, n=10):
+    """Cleanly deletes a file in `n` attempts (if necessary)"""
+    status = False
+    count = 0
+    while not status and count < n:
+        try:
+            _os.remove(fileName)
+        except OSError:
+            count += 1
+            _time.sleep(0.2)
+        else:
+            status = True
+    return status
+
+
+
+#%% _PyZDDE class (stripped down)
+class _PyZDDE(object):
+    """Class for communicating with Zemax using DDE"""
+    chNum = -1   
+    liveCh = 0  
+    server = 0    
+    
+    def __init__(self):
+        _PyZDDE.chNum += 1   
+        self.appName = "ZEMAX" + str(_PyZDDE.chNum) if _PyZDDE.chNum > 0 else "ZEMAX"
+        self.connection = False  
+
+    def zDDEInit(self):
+        """Initiates link with OpticStudio DDE server"""
+        self.pyver = _get_python_version()
+        # do this only one time or when there is no channel
+        if _PyZDDE.liveCh==0:
+            try:
+                _PyZDDE.server = _dde.CreateServer()
+                _PyZDDE.server.Create("ZCLIENT")   
+            except Exception as err:
+                _sys.stderr.write("{}: DDE server may be in use!".format(str(err)))
+                return -1
+        # Try to create individual conversations for each ZEMAX application.
+        self.conversation = _dde.CreateConversation(_PyZDDE.server)
+        try:
+            self.conversation.ConnectTo(self.appName, " ")
+        except Exception as err:
+            _sys.stderr.write("{}.\nOpticStudio UI may not be running!\n".format(str(err)))
+            # should close the DDE server if it exist
+            self.zDDEClose()
+            return -1
+        else:
+            _PyZDDE.liveCh += 1 
+            self.connection = True
+            return 0
+
+    def zDDEClose(self):
+        """Close the DDE link with Zemax server"""
+        if _PyZDDE.server and not _PyZDDE.liveCh:
+            _PyZDDE.server.Shutdown(self.conversation)
+            _PyZDDE.server = 0
+        elif _PyZDDE.server and self.connection and _PyZDDE.liveCh == 1:
+            _PyZDDE.server.Shutdown(self.conversation)
+            self.connection = False
+            self.appName = ''
+            _PyZDDE.liveCh -= 1  
+            _PyZDDE.server = 0  
+        elif self.connection:  
+            _PyZDDE.server.Shutdown(self.conversation)
+            self.connection = False
+            self.appName = ''
+            _PyZDDE.liveCh -= 1
+        return 0
+
+    def setTimeout(self, time):
+        """Set global timeout value, in seconds, for all DDE calls"""
+        self.conversation.SetDDETimeout(round(time))
+        return self.conversation.GetDDETimeout()
+
+    def _sendDDEcommand(self, cmd, timeout=None):
+        """Send command to DDE client"""
+        reply = self.conversation.Request(cmd, timeout)
+        if self.pyver > 2:
+            reply = reply.decode('ascii').rstrip()
+        return reply
+
+    def __del__(self):
+        self.zDDEClose()
+        
+    def zGetFile(self):
+        """Returns the full name of the lens file in DDE server"""
+        reply = self._sendDDEcommand('GetFile')
+        return reply.rstrip()
+               
+    def zGetRefresh(self):
+        """Copy lens data from the LDE into the Zemax DDE server"""
+        reply = None
+        reply = self._sendDDEcommand('GetRefresh')
+        if reply:
+            return int(reply) #Note: Zemax returns -1 if GetRefresh fails.
+        else:
+            return -998
+
+    def zGetUpdate(self):
+        """Update the lens"""
+        status,ret = -998, None
+        ret = self._sendDDEcommand("GetUpdate")
+        if ret != None:
+            status = int(ret)  #Note: Zemax returns -1 if GetUpdate fails.
+        return status
+            
+    def zGetVersion(self):
+        """Get the version of Zemax """
+        return int(self._sendDDEcommand("GetVersion"))
+        
+    def zLoadFile(self, fileName, append=None):
+        """Loads a zmx file into the DDE server"""
+        reply = None
+        if append:
+            cmd = "LoadFile,{},{}".format(fileName, append)
+        else:
+            cmd = "LoadFile,{}".format(fileName)
+        reply = self._sendDDEcommand(cmd)
+        if reply:
+            return int(reply) #Note: Zemax returns -999 if update fails.
+        else:
+            return -998
+        
+    def zPushLens(self, update=None, timeout=None):
+        """Copy lens in the Zemax DDE server into LDE"""
+        reply = None
+        if update == 1:
+            reply = self._sendDDEcommand('PushLens,1', timeout)
+        elif update == 0 or update is None:
+            reply = self._sendDDEcommand('PushLens,0', timeout)
+        else:
+            raise ValueError('Invalid value for flag')
+        if reply:
+            return int(reply)   # Note: Zemax returns -999 if push lens fails
+        else:
+            return -998
+
+    def zPushLensPermission(self):
+        status = None
+        status = self._sendDDEcommand('PushLensPermission')
+        return int(status)
+
+    def zSaveFile(self, fileName):
+        """Saves the lens currently loaded in the server to a Zemax file """
+        cmd = "SaveFile,{}".format(fileName)
+        reply = self._sendDDEcommand(cmd)
+        return int(float(reply.rstrip()))
+
 
 #%% ZOS API Application Class
 class _PyZOSApp(object):
@@ -40,7 +218,7 @@ class _PyZOSApp(object):
             edispatch = _comclient.gencache.EnsureDispatch
             cls.connect = edispatch('ZOSAPI.ZOSAPI_Connection')
             cls.app = cls.connect.CreateNewApplication()
-            Const = type('Const', (), _comclient.constants.__dicts__[0]) # Constants class
+            Const = type('Const', (), _get_constants_dict()) # Constants class
         return cls.app
 
 #%% Optical System Class
@@ -49,7 +227,8 @@ class OpticalSystem(object):
     """
     _instantiated = False
     _pyzosapp = None
-    
+    _dde_link = None
+        
     # Managed properties (prefix with 'p' to ease identification)
     pIsNonAxial = _ZOSPropMapper('_iopticalsystem', 'IsNonAxial')
     pMode = _ZOSPropMapper('_iopticalsystem', 'Mode')
@@ -58,7 +237,7 @@ class OpticalSystem(object):
     pSystemID = _ZOSPropMapper('_iopticalsystem', 'SystemID')
     pSystemName = _ZOSPropMapper('_iopticalsystem', 'SystemName', setter=True)
     
-    def __init__(self, mode=0):
+    def __init__(self, sync_ui=False, mode=0):
         """Returns an instance of Optical System
         @param mode : sequential (0) or non-sequential (1)
         """
@@ -70,6 +249,12 @@ class OpticalSystem(object):
             if mode == 1:
                 self._iopticalsystem.MakeNonSequential()
             OpticalSystem._instantiated = True
+            
+        ## activate PyZDDE if sync_ui requested
+        if sync_ui and not OpticalSystem._dde_link:
+            OpticalSystem._dde_link = _get_new_dde_link()
+        self._sync_ui_file = _get_sync_ui_filename() if sync_ui else None
+        self._file_to_save_on_Save = None
         
         ## patch methods from IOpticalSystem to the instance
         _replicate_methods(self._iopticalsystem, self)
@@ -77,6 +262,28 @@ class OpticalSystem(object):
     # Provide a way to make property calls without the prefix p, but don't try to wrap the returned object            
     def __getattr__(self, attrname):
         return getattr(self._iopticalsystem, attrname)
+    
+    def __del__(self):
+        if self._sync_ui_file:
+            ext_dict = ['.zmx', '.ZMX', '.CFG', '.SES', '.ZDA']
+            filename_bar_ext = self._sync_ui_file.rsplit('.')[0]
+            for ext in ext_dict:
+                if _os.path.exists(filename_bar_ext + ext):
+                    _delete_file(filename_bar_ext + ext)
+        OpticalSystem._dde_link.zDDEClose()  ##TODO: FIX should probably have a reference count???
+        
+    #%% UI sync machinery
+    def zPushLens(self, update=None):
+        """Push lens in ZOS COM server to UI"""
+        self.SaveAs(self._sync_ui_file)
+        OpticalSystem._dde_link.zLoadFile(self._sync_ui_file)
+        OpticalSystem._dde_link.zPushLens(update)
+        
+    def zGetRefresh(self):
+        """Copy lens in UI to headless ZOS COM server"""
+        OpticalSystem._dde_link.zGetRefresh()
+        OpticalSystem._dde_link.zSaveFile(self._sync_ui_file)
+        self._iopticalsystem.LoadFile (self._sync_ui_file, False)
     
     #%% Overridden Methods
     def SaveAs(self, filename):
@@ -88,11 +295,23 @@ class OpticalSystem(object):
 
         All future calls to `Save()`  will use the same file.
         """
-        directory = _os.path.split(filename)[0]
-        if not _os.path.exists(directory):
-            raise ValueError('{} is not valid.'.format(directory))
-        else:
+        directory, zfile = _os.path.split(filename)
+        if zfile.startswith('pyzos_ui_sync_file'):
             self._iopticalsystem.SaveAs(filename)
+        else: # regular file
+            if not _os.path.exists(directory):
+                raise ValueError('{} is not valid.'.format(directory))
+            else:
+                self._file_to_save_on_Save = filename   # store to use in Save()
+                self._iopticalsystem.SaveAs(filename)
+            
+    def Save(self):
+        """Saves the current system"""
+        # This method is intercepted to allow ui_sync
+        if self._file_to_save_on_Save:
+            self._iopticalsystem.SaveAs(self._file_to_save_on_Save)
+        else:
+            self._iopticalsystem.Save()
 
     #%% Overridden Properties
     @property
@@ -145,7 +364,7 @@ class OpticalSystem(object):
         """Gets an interface used to run various tools on the optical system (wrapped)"""
         return wrapped_zos_object(self._iopticalsystem.Tools)
     
-    #%% Extra/ Custom methods 
+    #%% Extra / Custom methods 
     def zGetSurfaceData(self, surfNum):
         """Return surface data"""
         if self.pMode == 0: # Sequential mode
