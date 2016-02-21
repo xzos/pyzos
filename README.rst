@@ -5,27 +5,40 @@ Python Zemax OpticStudio API
 
 Current revision
 ''''''''''''''''
-The current code base (version 0.0.2) is a working PROTOTYPE! 
+The current code (version 0.0.2) is a working PROTOTYPE! 
 
 Philosophy / Design Goals
 '''''''''''''''''''''''''
-The ZOS-API Interface is already an excellent tool. However, interfacing the ZOS-API with 
-Python using PyWin32 creates some problems. For e.g., the large set of *property* attributes 
-are not introspectable, several objects require appropriate type casting before use, and 
-the interface is quite complex (albeit flexible) that require a significant amount of 
-coding to do even very simple tasks. 
 
-The philosophy behind PyZOS is to make ZOS-API easier to use with Python by:
+Problems
+~~~~~~~~
 
-1. provide functions to interact with a live OpticStuido UI
-2. providing better introspection  
+The ZOS-API is an excellent interface for OpticStudio. However, using the ZOS COM API in 
+Python through PyWin32 creates some problems: 
+
+* the large set of *property* attributes of the ZOS objects are not introspectable, 
+* several objects require appropriate type casting before use, and 
+* the interface is quite complex (albeit flexible), which requires a significant amount of 
+coding even for very simple tasks. 
+
+Additionally, the ZOS-API functions only in standalone (headless) mode in Python. This 
+headless mode prevents one to communicate with an already running OpticStudio user 
+interface application and observe the changes made to the design instantly.   
+
+Solutions
+~~~~~~~~~
+
+The philosophy behind PyZOS is to make ZOS-API easier to use in Python by:
+
+1. enabling interactivity with a running OpticStudio user-interface ([see demo](https://www.youtube.com/watch?v=ot5CrjMXc_w))
+2. providing better introspection of objects  
 3. reduce complexity by
-  * providing a set of helper methods that encapsulate common tasks
-  * allowing helper methods to be easily added to ZOS objects for custom tasks
-  * taking care of type casting of ZOS objects
+  * providing a set of helper methods that encapsulates common tasks
+  * allowing helper methods to be easily coupled to existing ZOS objects for custom functions
+  * managing appropriate type casting of ZOS objects
 4. do all the above without limiting or obscuring the ZOS-API in any way. 
 
-These enhancements to ZOS-API using PyZOS library are documented in this (work in progress) 
+These *enhancements* to ZOS-API using PyZOS library are documented in this (work in progress) 
 `Jupyter notebook <http://nbviewer.jupyter.org/github/pyzos/pyzos/blob/master/Examples/jupyter_notebooks/00_Enhancing_the_ZOS_API_Interface.ipynb>`__.   
 
 
@@ -34,12 +47,16 @@ Example usage
 .. code:: python
 
     import pyzos.zos as zos   
-    osys = zos.OpticalSystem()
+    osys = zos.OpticalSystem(sync_ui=True) # Turn on interactivity with a running OpticStudio user-interface application
     sdata = osys.pSystemData
     sdata.pAperture.pApertureValue = 40
     sdata.pFields.AddField(0, 2.0, 1.0)
     wave = zos.Const.WavelengthPreset_d_0p587
     sdata.pWavelengths.SelectWavelengthPreset(wave)
+    ...
+    osys.zPushLens(1)  # copy lens from ZOS COM server to the visible UI app
+    ...
+    osys.zGetRefresh() # copy changes from the visible UI app to the ZOS COM server
     ...
  
 
