@@ -13,6 +13,8 @@ import os as _os
 import sys as _sys
 import collections as _co
 import win32com.client as _comclient
+import tempfile as _tempfile
+import time as _time
 import warnings as _warnings
 from pyzos.zosutils import (ZOSPropMapper as _ZOSPropMapper, 
                             replicate_methods as _replicate_methods,
@@ -32,6 +34,38 @@ class _ZOSSystemError(Exception): pass
 #%% Module helper functions
 def _get_python_version():
     return _sys.version_info[0]
+    
+def _get_constants_dict():
+    const_dict = _comclient.constants.__dicts__[0]
+    if _get_python_version() == 2:
+        return const_dict
+    else:
+        return dict(const_dict)
+    
+def _get_sync_ui_filename():
+    temp_dir = _tempfile.gettempdir()
+    temp_file = 'pyzos_ui_sync_file_{}.zmx'.format(_os.getpid())
+    return _os.path.join(temp_dir, temp_file)
+
+def _get_new_dde_link():
+    ln = _PyZDDE()
+    ln.zDDEInit()
+    return ln
+    
+def _delete_file(fileName, n=10):
+    """Cleanly deletes a file in `n` attempts (if necessary)"""
+    status = False
+    count = 0
+    while not status and count < n:
+        try:
+            _os.remove(fileName)
+        except OSError:
+            count += 1
+            _time.sleep(0.2)
+        else:
+            status = True
+    return status
+
 
 
 #%% _PyZDDE class (stripped down)
@@ -47,7 +81,7 @@ class _PyZDDE(object):
         self.connection = False  
 
     def zDDEInit(self):
-        """Initiates DDE link with Zemax server"""
+        """Initiates link with OpticStudio DDE server"""
         self.pyver = _get_python_version()
         # do this only one time or when there is no channel
         if _PyZDDE.liveCh==0:
@@ -62,7 +96,7 @@ class _PyZDDE(object):
         try:
             self.conversation.ConnectTo(self.appName, " ")
         except Exception as err:
-            _sys.stderr.write("ERROR: {}.\nZEMAX may not be running!\n".format(str(err)))
+            _sys.stderr.write("{}.\nOpticStudio UI may not be running!\n".format(str(err)))
             # should close the DDE server if it exist
             self.zDDEClose()
             return -1
@@ -110,7 +144,7 @@ class _PyZDDE(object):
         return reply.rstrip()
                
     def zGetRefresh(self):
-        """Copy lens data from the LDE into the Zemax DDE server """
+        """Copy lens data from the LDE into the Zemax DDE server"""
         reply = None
         reply = self._sendDDEcommand('GetRefresh')
         if reply:
@@ -184,7 +218,7 @@ class _PyZOSApp(object):
             edispatch = _comclient.gencache.EnsureDispatch
             cls.connect = edispatch('ZOSAPI.ZOSAPI_Connection')
             cls.app = cls.connect.CreateNewApplication()
-            Const = type('Const', (), _comclient.constants.__dicts__[0]) # Constants class
+            Const = type('Const', (), _get_constants_dict()) # Constants class
         return cls.app
 
 #%% Optical System Class
@@ -193,7 +227,8 @@ class OpticalSystem(object):
     """
     _instantiated = False
     _pyzosapp = None
-    
+    _dde_link = None
+        
     # Managed properties (prefix with 'p' to ease identification)
     pIsNonAxial = _ZOSPropMapper('_iopticalsystem', 'IsNonAxial')
     pMode = _ZOSPropMapper('_iopticalsystem', 'Mode')
@@ -202,7 +237,7 @@ class OpticalSystem(object):
     pSystemID = _ZOSPropMapper('_iopticalsystem', 'SystemID')
     pSystemName = _ZOSPropMapper('_iopticalsystem', 'SystemName', setter=True)
     
-    def __init__(self, mode=0):
+    def __init__(self, sync_ui=False, mode=0):
         """Returns an instance of Optical System
         @param mode : sequential (0) or non-sequential (1)
         """
@@ -214,6 +249,12 @@ class OpticalSystem(object):
             if mode == 1:
                 self._iopticalsystem.MakeNonSequential()
             OpticalSystem._instantiated = True
+            
+        ## activate PyZDDE if sync_ui requested
+        if sync_ui and not OpticalSystem._dde_link:
+            OpticalSystem._dde_link = _get_new_dde_link()
+        self._sync_ui_file = _get_sync_ui_filename() if sync_ui else None
+        self._file_to_save_on_Save = None
         
         ## patch methods from IOpticalSystem to the instance
         _replicate_methods(self._iopticalsystem, self)
@@ -221,6 +262,28 @@ class OpticalSystem(object):
     # Provide a way to make property calls without the prefix p, but don't try to wrap the returned object            
     def __getattr__(self, attrname):
         return getattr(self._iopticalsystem, attrname)
+    
+    def __del__(self):
+        if self._sync_ui_file:
+            ext_dict = ['.zmx', '.ZMX', '.CFG', '.SES', '.ZDA']
+            filename_bar_ext = self._sync_ui_file.rsplit('.')[0]
+            for ext in ext_dict:
+                if _os.path.exists(filename_bar_ext + ext):
+                    _delete_file(filename_bar_ext + ext)
+        OpticalSystem._dde_link.zDDEClose()  ##TODO: FIX should probably have a reference count???
+        
+    #%% UI sync machinery
+    def zPushLens(self, update=None):
+        """Push lens in ZOS COM server to UI"""
+        self.SaveAs(self._sync_ui_file)
+        OpticalSystem._dde_link.zLoadFile(self._sync_ui_file)
+        OpticalSystem._dde_link.zPushLens(update)
+        
+    def zGetRefresh(self):
+        """Copy lens in UI to headless ZOS COM server"""
+        OpticalSystem._dde_link.zGetRefresh()
+        OpticalSystem._dde_link.zSaveFile(self._sync_ui_file)
+        self._iopticalsystem.LoadFile (self._sync_ui_file, False)
     
     #%% Overridden Methods
     def SaveAs(self, filename):
@@ -232,11 +295,23 @@ class OpticalSystem(object):
 
         All future calls to `Save()`  will use the same file.
         """
-        directory = _os.path.split(filename)[0]
-        if not _os.path.exists(directory):
-            raise ValueError('{} is not valid.'.format(directory))
-        else:
+        directory, zfile = _os.path.split(filename)
+        if zfile.startswith('pyzos_ui_sync_file'):
             self._iopticalsystem.SaveAs(filename)
+        else: # regular file
+            if not _os.path.exists(directory):
+                raise ValueError('{} is not valid.'.format(directory))
+            else:
+                self._file_to_save_on_Save = filename   # store to use in Save()
+                self._iopticalsystem.SaveAs(filename)
+            
+    def Save(self):
+        """Saves the current system"""
+        # This method is intercepted to allow ui_sync
+        if self._file_to_save_on_Save:
+            self._iopticalsystem.SaveAs(self._file_to_save_on_Save)
+        else:
+            self._iopticalsystem.Save()
 
     #%% Overridden Properties
     @property
@@ -289,7 +364,7 @@ class OpticalSystem(object):
         """Gets an interface used to run various tools on the optical system (wrapped)"""
         return wrapped_zos_object(self._iopticalsystem.Tools)
     
-    #%% Extra/ Custom methods 
+    #%% Extra / Custom methods 
     def zGetSurfaceData(self, surfNum):
         """Return surface data"""
         if self.pMode == 0: # Sequential mode

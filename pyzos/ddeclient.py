@@ -267,7 +267,7 @@ class DDEError(RuntimeError):
         if idInst is None:
             RuntimeError.__init__(self, msg)
         else:
-            RuntimeError.__init__(self, "%s (err=%s)" % (msg, hex(DDE.GetLastError(idInst))))
+            RuntimeError.__init__(self, "DDE Error: %s (err=%s)" % (msg, hex(DDE.GetLastError(idInst))))
 
 class DDEClient(object):
     """The DDEClient class.
