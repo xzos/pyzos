@@ -18,6 +18,7 @@ import time as _time
 import warnings as _warnings
 from pyzos.zosutils import (ZOSPropMapper as _ZOSPropMapper, 
                             replicate_methods as _replicate_methods,
+                            inheritance_dict as _inheritance_dict,
                             wrapped_zos_object as wrapped_zos_object)
 import pyzos.ddeclient as _dde
 
@@ -249,6 +250,9 @@ class OpticalSystem(object):
             if mode == 1:
                 self._iopticalsystem.MakeNonSequential()
             OpticalSystem._instantiated = True
+
+        ## Store base class object 
+        self._base_cls_name = _inheritance_dict.get('IOpticalSystem', None)
             
         ## activate PyZDDE if sync_ui requested
         if sync_ui and not OpticalSystem._dde_link:
@@ -270,7 +274,8 @@ class OpticalSystem(object):
             for ext in ext_dict:
                 if _os.path.exists(filename_bar_ext + ext):
                     _delete_file(filename_bar_ext + ext)
-        OpticalSystem._dde_link.zDDEClose()  ##TODO: FIX should probably have a reference count???
+        if OpticalSystem._dde_link:
+            OpticalSystem._dde_link.zDDEClose()  ##TODO: FIX should probably have a reference count???
         
     #%% UI sync machinery
     def zPushLens(self, update=None):

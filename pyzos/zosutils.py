@@ -9,6 +9,7 @@
 from __future__ import division, print_function
 import sys as _sys
 import warnings as _warnings
+from win32com.client import CastTo as _CastTo
 
 def get_callable_method_dict(obj):
     """Returns a dictionary of callable methods of object `obj`.
@@ -73,23 +74,35 @@ def get_properties(zos_obj):
 class ZOSPropMapper(object):
     """Descriptor for mapping ZOS object properties to corresponding wrapper classes
     """
-    def __init__(self, zos_interface_attr, property_name, setter=False):
+    def __init__(self, zos_interface_attr, property_name, setter=False, base_cls_prop=False):
         """
         @param zos_interface_attr : attribute used to dispatch method/property calls to 
         the zos_object (it hold the zos_object)
         @param propname : string, like 'SystemName' for IOpticalSystem
         @param setter : if False, a read-only data descriptor is created
+        @param base_cls_prop : If True, the property call must be dispatched to the base class of obj
         """
         self.property_name = property_name  # property_name is a string like 'SystemName' for IOpticalSystem
         self.zos_interface_attr = zos_interface_attr  
         self.setter = setter
+        self.base_cls_prop = base_cls_prop
 
     def __get__(self, obj, objtype):
-        return getattr(obj.__dict__[self.zos_interface_attr], self.property_name)
+        if self.base_cls_prop:
+            print('Base class property. Using CastTo')
+            return getattr(_CastTo(obj.__dict__[self.zos_interface_attr], obj._base_cls_name), self.property_name)
+        else:
+            print('Current class property. ')
+            return getattr(obj.__dict__[self.zos_interface_attr], self.property_name)
         
     def __set__(self, obj, value):
         if self.setter:
-            setattr(obj.__dict__[self.zos_interface_attr], self.property_name, value)
+            if self.base_cls_prop:
+                print('Base class property setter. Using CastTo')
+                setattr(_CastTo(obj.__dict__[self.zos_interface_attr], obj._base_cls_name), self.property_name, value)
+            else:
+                print('Current class property setter.')
+                setattr(obj.__dict__[self.zos_interface_attr], self.property_name, value)
         else:
             raise AttributeError("Can't set {}".format(self.property_name))
             
@@ -104,13 +117,22 @@ def managed_wrapper_class_factory(zos_obj):
     dispatch_attr = '_' + cls_name.lower()  # protocol to be followed to store the ZOS COM object
     
     cdict = {}  # class dictionary
-    
+
+    # patch the base object properties
+    base_cls_name = inheritance_dict.get(cls_name, None)
+    if base_cls_name:
+        getters, setters = get_properties(_CastTo(zos_obj, base_cls_name))
+        for each in getters:
+            exec("p{} = ZOSPropMapper('{}', '{}', base_cls_prop=True)".format(each, dispatch_attr, each), globals(), cdict)
+        for each in setters:
+            exec("p{} = ZOSPropMapper('{}', '{}', setter=True, base_cls_prop=True)".format(each, dispatch_attr, each), globals(), cdict)
+
     # patch the property attributes
     getters, setters = get_properties(zos_obj)
     for each in getters:
         exec("p{} = ZOSPropMapper('{}', '{}')".format(each, dispatch_attr, each), globals(), cdict)
     for each in setters:
-        exec("p{} = ZOSPropMapper('{}', '{}', True)".format(each, dispatch_attr, each), globals(), cdict)
+        exec("p{} = ZOSPropMapper('{}', '{}', setter=True)".format(each, dispatch_attr, each), globals(), cdict)
     
     def __init__(self, zos_obj):
         
@@ -120,6 +142,9 @@ def managed_wrapper_class_factory(zos_obj):
         self.__dict__[dispatch_attr] = zos_obj
         self._dispatch_attr_value = dispatch_attr # used in __getattr__
         
+        # Store base class object 
+        self._base_cls_name = inheritance_dict.get(cls_name, None)
+
         # patch the methods
         replicate_methods(zos_obj, self)
     
@@ -154,5 +179,42 @@ def wrapped_zos_object(zos_obj):
     The function dynamically creates a wrapped class with all the provided methods, 
     properties, and custom methods monkey patched; and returns an instance of it.
     """
+    assert 'CLSID' in dir(zos_obj) # prevent already wrapped objects
     Class = managed_wrapper_class_factory(zos_obj)
     return Class(zos_obj)
+
+#%% ZOS object inheritance relationships
+inheritance_dict = {
+    ## IEditor Interface - base interface for all 5 editors
+    'ILensDataEditor' : 'IEditor',
+    'IMultiConfigEditor' : 'IEditor',
+    'IMeritFunctionEditor' : 'IEditor',
+    'INonSeqEditor' : 'IEditor',
+    'IToleranceDataEditor' : 'IEditor',
+    ## IAS_ Interface - base class for all analysis settings interfaces
+    # Aberrations interface settings
+    # EncircledEnergy interface settings
+    # Fans interface settings
+    # Mtf interface settings
+    'IAS_FftMtf' : 'IAS_',
+    'IAS_FftMtfMap' : 'IAS_',
+    'IAS_FftMtfvsField' : 'IAS_',
+    'IAS_FftSurfaceMtf' : 'IAS_',
+    'IAS_FftThroughFocusMtf' : 'IAS_',
+    'IAS_GeometricMtf' : 'IAS_',
+    'IAS_GeometricMtfMap' : 'IAS_',
+    'IAS_GeometricMtfvsField' : 'IAS_',
+    'IAS_GeometricThroughFocusMtf' : 'IAS_',
+    'IAS_HuygensMtf' : 'IAS_',
+    'IAS_HuygensMtfvsField' : 'IAS_',
+    'IAS_HuygensSurfaceMtf' : 'IAS_',
+    'IAS_HuygensThroughFocusMtf' : 'IAS_',
+    # Psf interface settings
+    # RayTracing interface settings 
+    # RMS interface settings
+    # Spot interface settings
+    # Surface interface settings
+    # Wavefront interface settings
+
+
+}
