@@ -183,7 +183,8 @@ def wrapped_zos_object(zos_obj):
     Class = managed_wrapper_class_factory(zos_obj)
     return Class(zos_obj)
 
-#%% ZOS object inheritance relationships
+#%% ZOS object inheritance relationships (only those ZOS objects are entered that has a base class)
+# unfortunately this dict has to be created manually referring to the ZOS-API documentation
 inheritance_dict = {
     ## IEditor Interface - base interface for all 5 editors
     'ILensDataEditor' : 'IEditor',
@@ -193,8 +194,25 @@ inheritance_dict = {
     'IToleranceDataEditor' : 'IEditor',
     ## IAS_ Interface - base class for all analysis settings interfaces
     # Aberrations interface settings
+    'IAS_FieldCurvatureAndDistortion' : 'IAS_',
+    'IAS_FocalShiftDiagram' : 'IAS_',
+    'IAS_GridDistortion' : 'IAS_',
+    'IAS_LateralColor' : 'IAS_',
+    'IAS_LongitudinalAberration' : 'IAS_',
+    'IAS_RayTrace' : 'IAS_',
+    'IAS_SeidelCoefficients' : 'IAS_',
+    'IAS_SeidelDiagram' : 'IAS_',
+    'IAS_ZernikeAnnularCoefficients' : 'IAS_',
+    'IAS_ZernikeCoefficientsVsField' : 'IAS_',
+    'IAS_ZernikeFringeCoefficients' : 'IAS_',
+    'IAS_ZernikeStandardCoefficients' : 'IAS_',
     # EncircledEnergy interface settings
+    'IAS_DiffractionEncircledEnergy' : 'IAS_',
+    'IAS_ExtendedSourceEncircledEnergy' : 'IAS_',
+    'IAS_GeometricEncircledEnergy' : 'IAS_',
+    'IAS_GeometricLineEdgeSpread' : 'IAS_',
     # Fans interface settings
+    'IAS_Fan' : 'IAS_',
     # Mtf interface settings
     'IAS_FftMtf' : 'IAS_',
     'IAS_FftMtfMap' : 'IAS_',
@@ -210,11 +228,53 @@ inheritance_dict = {
     'IAS_HuygensSurfaceMtf' : 'IAS_',
     'IAS_HuygensThroughFocusMtf' : 'IAS_',
     # Psf interface settings
+    'IAS_FftPsf' : 'IAS_',
+    'IAS_FftPsfCrossSection' : 'IAS_',
+    'IAS_FftPsfLineEdgeSpread' : 'IAS_',
+    'IAS_HuygensPsf' : 'IAS_',
+    'IAS_HuygensPsfCrossSection' : 'IAS_',
     # RayTracing interface settings 
+    'IAS_DetectorViewer' : 'IAS_',
     # RMS interface settings
+    'IAS_RMSField' : 'IAS_',
+    'IAS_RMSFieldMap' : 'IAS_',
+    'IAS_RMSFocus' : 'IAS_',
+    'IAS_RMSLambdaDiagram' : 'IAS_',
     # Spot interface settings
+    'IAS_Spot' : 'IAS_',
     # Surface interface settings
+    'IAS_SurfaceCurvature' : 'IAS_',
+    'IAS_SurfaceCurvatureCross' : 'IAS_',
+    'IAS_SurfacePhase' : 'IAS_',
+    'IAS_SurfacePhaseCross' : 'IAS_',
+    'IAS_SurfaceSag' : 'IAS_',
+    'IAS_SurfaceSagCross' : 'IAS_',
     # Wavefront interface settings
-
-
+    'IAS_Foucault' : 'IAS_',
+    ## IOpticalSystemTools Interface - base class for all system tools
+    'IBatchRayTrace' : 'ISystemTool',
+    'IConvertToNSCGroup' : 'ISystemTool',
+    'ICreateArchive' : 'ISystemTool',
+    'IExportCAD' : 'ISystemTool',
+    'IGlobalOptimization' : 'ISystemTool',
+    'IHammerOptimization' : 'ISystemTool',
+    'ILensCatalogs' : 'ISystemTool',
+    'ILightningTrace' : 'ISystemTool',
+    'ILocalOptimization' : 'ISystemTool',
+    'IMFCalculator' : 'ISystemTool',
+    'INSCRayTrace' : 'ISystemTool',
+    'IQuickAdjust' : 'ISystemTool',
+    'IQuickFocus' : 'ISystemTool',
+    'IRestoreArchive' : 'ISystemTool',
+    'IScale' : 'ISystemTool',
+    'ITolerancing' : 'ISystemTool',    
+    ## IWizard Interface - base interface for all wizards
+    'INSCWizard' : 'IWizard',
+    'INSCBitmapWizard' : 'INSCWizard',   # here is a 2-level inheritence 
+    'INSCOptimizationWizard' : 'INSCWizard', # here is a 2-level inheritence
+    'INSCRoadwayLightingWizard' : 'IWizard',
+    'IToleranceWizard' : 'IWizard', 
+    'INSCToleranceWizard': 'IToleranceWizard', # here is a 2-level inheritence
+    'ISEQToleranceWizard' : 'IToleranceWizard', # here is a 2-level inheritence
+    'ISEQOptimizationWizard' : 'IWizard',
 }
