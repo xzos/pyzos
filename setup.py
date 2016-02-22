@@ -17,14 +17,14 @@ with open('README.rst') as fh:
 
 setup(
     name='PyZOS',
-    version='0.0.1',
-    description='Zemax / OpticStudio standalone ZOS-API using Python COM',
+    version='0.0.2',
+    description='Python interface for Zemax OpticStudio COM  API (ZOS-API)',
     long_description=long_description,
     author='Indranil Sinharoy',
     author_email='indranil_leo@yahoo.com',
     license='MIT',
     keywords='zemax opticstudio extensions COM optics',
-    url=' ',
+    url='https://github.com/pyzos/pyzos',
     packages=find_packages(),
     include_package_data=True,
     classifiers=[
