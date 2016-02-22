@@ -88,20 +88,16 @@ class ZOSPropMapper(object):
         self.base_cls_prop = base_cls_prop
 
     def __get__(self, obj, objtype):
-        if self.base_cls_prop:
-            print('Base class property. Using CastTo')
+        if self.base_cls_prop and obj._base_cls_name:   # obj._base_cls_name == None if obj has no base class
             return getattr(_CastTo(obj.__dict__[self.zos_interface_attr], obj._base_cls_name), self.property_name)
         else:
-            print('Current class property. ')
             return getattr(obj.__dict__[self.zos_interface_attr], self.property_name)
         
     def __set__(self, obj, value):
         if self.setter:
-            if self.base_cls_prop:
-                print('Base class property setter. Using CastTo')
+            if self.base_cls_prop and obj._base_cls_name:  # obj._base_cls_name == None if obj has no base class
                 setattr(_CastTo(obj.__dict__[self.zos_interface_attr], obj._base_cls_name), self.property_name, value)
             else:
-                print('Current class property setter.')
                 setattr(obj.__dict__[self.zos_interface_attr], self.property_name, value)
         else:
             raise AttributeError("Can't set {}".format(self.property_name))
@@ -144,6 +140,10 @@ def managed_wrapper_class_factory(zos_obj):
         
         # Store base class object 
         self._base_cls_name = inheritance_dict.get(cls_name, None)
+
+        # patch the methods of the base class
+        if self._base_cls_name:
+            replicate_methods(_CastTo(zos_obj, self._base_cls_name), self)
 
         # patch the methods
         replicate_methods(zos_obj, self)

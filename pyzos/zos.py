@@ -260,6 +260,10 @@ class OpticalSystem(object):
         self._sync_ui_file = _get_sync_ui_filename() if sync_ui else None
         self._file_to_save_on_Save = None
         
+        ## patch methods from base calss of IOpticalSystem to the instance
+        if self._base_cls_name:
+            _replicate_methods(_comclient.CastTo(self._iopticalsystem, self._base_cls_name), self)
+
         ## patch methods from IOpticalSystem to the instance
         _replicate_methods(self._iopticalsystem, self)
 
