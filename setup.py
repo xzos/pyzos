@@ -17,7 +17,7 @@ with open('README.rst') as fh:
 
 setup(
     name='PyZOS',
-    version='0.0.2',
+    version='0.0.3',
     description='Python interface for Zemax OpticStudio COM  API (ZOS-API)',
     long_description=long_description,
     author='Indranil Sinharoy',

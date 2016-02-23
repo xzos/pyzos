@@ -5,7 +5,7 @@ Python Zemax OpticStudio API
 
 Current revision
 ''''''''''''''''
-The current code (version 0.0.2) is a working PROTOTYPE! 
+The current code (version 0.0.3) is a working PROTOTYPE! 
 
 Philosophy / Design Goals
 '''''''''''''''''''''''''
