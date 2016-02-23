@@ -149,6 +149,8 @@ def managed_wrapper_class_factory(zos_obj):
 
         # patch the methods of given ZOS object 
         replicate_methods(zos_obj, self)
+
+        self._wrapped = True
     
     # Provide a way to make property calls without the prefix p, but don't try to wrap the returned object 
     def __getattr__(self, attrname):
@@ -181,9 +183,11 @@ def wrapped_zos_object(zos_obj):
     The function dynamically creates a wrapped class with all the provided methods, 
     properties, and custom methods monkey patched; and returns an instance of it.
     """
-    assert 'CLSID' in dir(zos_obj) # prevent already wrapped objects #TODO: Change the assert to return the object as is if already wrapped
-    Class = managed_wrapper_class_factory(zos_obj)                   # maybe, wrapped objects should have a _wrapped (=True) attribute.
-    return Class(zos_obj)
+    if hasattr(zos_obj, '_wrapped'):
+        return zos_obj
+    else:
+        Class = managed_wrapper_class_factory(zos_obj)   
+        return Class(zos_obj)
 
 #%% ZOS object inheritance relationships dictionary
 # Unfortunately this dict is created manually following the ZOS-API documentation. There

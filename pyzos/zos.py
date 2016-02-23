@@ -253,8 +253,11 @@ class OpticalSystem(object):
                 self._iopticalsystem.MakeNonSequential()
             OpticalSystem._instantiated = True
 
-        ## Store ZOS IOpticalSystem's base class(es)
+        ## Store ZOS IOpticalSystem's base class(es)...The following two lines are not
+        #  actually required for IOpticalSystem, but they are there to be symmetrical with
+        #  other PyZOS wrapped objects 
         self._base_cls_list = _inheritance_dict.get('IOpticalSystem', None)
+        self._wrapped = True
             
         ## activate PyZDDE if sync_ui requested
         if sync_ui and not OpticalSystem._dde_link:
