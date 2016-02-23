@@ -150,6 +150,7 @@ def managed_wrapper_class_factory(zos_obj):
         # patch the methods of given ZOS object 
         replicate_methods(zos_obj, self)
 
+        # mark object as wrapped to prevent it from being wrapped subsequently
         self._wrapped = True
     
     # Provide a way to make property calls without the prefix p, but don't try to wrap the returned object 
@@ -177,13 +178,15 @@ def wrapped_zos_object(zos_obj):
     """Helper function to wrap ZOS API COM objects. 
 
     @param zos_obj : ZOS API Python COM object
-    @return: instance of the wrapped ZOS API class.
+    @return: instance of the wrapped ZOS API class. If the input object is not a ZOS-API
+             COM object or if it is already wrapped, then the object is returned without
+             wrapping.
 
     Notes:
     The function dynamically creates a wrapped class with all the provided methods, 
     properties, and custom methods monkey patched; and returns an instance of it.
     """
-    if hasattr(zos_obj, '_wrapped'):
+    if hasattr(zos_obj, '_wrapped') or ('CLSID' not in dir(zos_obj)):
         return zos_obj
     else:
         Class = managed_wrapper_class_factory(zos_obj)   

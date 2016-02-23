@@ -230,7 +230,7 @@ class OpticalSystem(object):
     _dde_link = None
 
     # Patch managed properties of IOpticalSystem's base classes
-    # skipped for now ... IOpticalSystem doesn't have any base class (currently)
+    # Not required for now ... IOpticalSystem doesn't have any base class (currently)
         
     # Patch managed properties of ZOS IOpticalSystem
     pIsNonAxial = _ZOSPropMapper('_iopticalsystem', 'IsNonAxial')
@@ -253,10 +253,9 @@ class OpticalSystem(object):
                 self._iopticalsystem.MakeNonSequential()
             OpticalSystem._instantiated = True
 
-        ## Store ZOS IOpticalSystem's base class(es)...The following two lines are not
-        #  actually required for IOpticalSystem, but they are there to be symmetrical with
-        #  other PyZOS wrapped objects 
+        # Store ZOS IOpticalSystem's base class(es)
         self._base_cls_list = _inheritance_dict.get('IOpticalSystem', None)
+        # mark object as wrapped to prevent it from being wrapped subsequently
         self._wrapped = True
             
         ## activate PyZDDE if sync_ui requested
