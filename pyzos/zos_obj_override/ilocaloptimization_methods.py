@@ -16,10 +16,3 @@ from pyzos.zosutils import wrapped_zos_object as _wrapped_zos_object
 
 # Overridden methods
 # ------------------
-def RunAndWaitForCompletion(self):
-    base_tool = _CastTo(self._ilocaloptimization, 'ISystemTool')
-    return base_tool.RunAndWaitForCompletion()
-
-def Close(self):
-    base_tool = _CastTo(self._ilocaloptimization, 'ISystemTool')
-    return base_tool.Close()

@@ -37,11 +37,5 @@ def New_FftMtf(self):
 def New_FftMtfMap(self):
     return _wrapped_zos_object(self._i_analyses.New_FftMtfMap())
 
-# Extra methods
-# -------------
-def zDummyI_AnalysesMethod1(self):
-    print('Dummy I_Analyses Method')
-
-def zDummyI_AnalysesMethod2(self):
-    print('Dummy I_Analyses Method')
-    
+# Custom methods
+# --------------

@@ -68,7 +68,6 @@ def _delete_file(fileName, n=10):
     return status
 
 
-
 #%% _PyZDDE class (stripped down)
 class _PyZDDE(object):
     """Class for communicating with Zemax using DDE"""
@@ -229,8 +228,11 @@ class OpticalSystem(object):
     _instantiated = False
     _pyzosapp = None
     _dde_link = None
+
+    # Patch managed properties of IOpticalSystem's base classes
+    # skipped for now ... IOpticalSystem doesn't have any base class (currently)
         
-    # Managed properties (prefix with 'p' to ease identification)
+    # Patch managed properties of ZOS IOpticalSystem
     pIsNonAxial = _ZOSPropMapper('_iopticalsystem', 'IsNonAxial')
     pMode = _ZOSPropMapper('_iopticalsystem', 'Mode')
     pNeedsSave = _ZOSPropMapper('_iopticalsystem', 'NeedsSave')
@@ -245,14 +247,14 @@ class OpticalSystem(object):
         if OpticalSystem._instantiated:
             self._iopticalsystem = OpticalSystem._pyzosapp.CreateNewSystem(mode) # wrapped object
         else:
-            OpticalSystem._pyzosapp = _PyZOSApp()               # wrapped object
+            OpticalSystem._pyzosapp = _PyZOSApp()                         # wrapped object
             self._iopticalsystem = OpticalSystem._pyzosapp.GetSystemAt(0) # PrimarySystem
             if mode == 1:
                 self._iopticalsystem.MakeNonSequential()
             OpticalSystem._instantiated = True
 
-        ## Store base class object 
-        self._base_cls_name = _inheritance_dict.get('IOpticalSystem', None)
+        ## Store ZOS IOpticalSystem's base class(es)
+        self._base_cls_list = _inheritance_dict.get('IOpticalSystem', None)
             
         ## activate PyZDDE if sync_ui requested
         if sync_ui and not OpticalSystem._dde_link:
@@ -260,11 +262,12 @@ class OpticalSystem(object):
         self._sync_ui_file = _get_sync_ui_filename() if sync_ui else None
         self._file_to_save_on_Save = None
         
-        ## patch methods from base calss of IOpticalSystem to the instance
-        if self._base_cls_name:
-            _replicate_methods(_comclient.CastTo(self._iopticalsystem, self._base_cls_name), self)
+        ## patch methods from base class of IOpticalSystem to the wrapped object
+        if self._base_cls_list:
+            for base_cls_name in self._base_cls_list:
+                _replicate_methods(_comclient.CastTo(self._iopticalsystem, base_cls_name), self)
 
-        ## patch methods from IOpticalSystem to the instance
+        ## patch methods from ZOS IOpticalSystem to the wrapped object
         _replicate_methods(self._iopticalsystem, self)
 
     # Provide a way to make property calls without the prefix p, but don't try to wrap the returned object            
