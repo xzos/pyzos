@@ -259,11 +259,11 @@ class OpticalSystem(object):
         self._wrapped = True
             
         ## activate PyZDDE if sync_ui requested
-        if sync_ui and not OpticalSystem._dde_link:
-            OpticalSystem._dde_link = _get_new_dde_link()
-        self._sync_ui_file = _get_sync_ui_filename() if sync_ui else None
+        self._sync_ui_file = None
         self._file_to_save_on_Save = None
-        
+        if sync_ui:
+            self.zSyncWithUI()
+
         ## patch methods from base class of IOpticalSystem to the wrapped object
         if self._base_cls_list:
             for base_cls_name in self._base_cls_list:
@@ -287,6 +287,13 @@ class OpticalSystem(object):
             OpticalSystem._dde_link.zDDEClose()  ##TODO: FIX should probably have a reference count???
         
     #%% UI sync machinery
+    def zSyncWithUI(self):
+        """Turn on sync-with-ui"""
+        if not OpticalSystem._dde_link:
+            OpticalSystem._dde_link = _get_new_dde_link()
+        if not self._sync_ui_file:
+            self._sync_ui_file = _get_sync_ui_filename() 
+
     def zPushLens(self, update=None):
         """Push lens in ZOS COM server to UI"""
         self.SaveAs(self._sync_ui_file)
