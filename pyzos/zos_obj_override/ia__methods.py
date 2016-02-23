@@ -20,17 +20,12 @@ def GetResults(self):
     return _wrapped_zos_object(self._ia_.GetResults())
 
 def GetSettings(self):
-    # the GetSettings() method of IA_ interface returns IAS_ interface object 
-    # which is the base class of all other settings interface. IAS_ contains a 
-    # set of methods intended to be inherited by the specialized settings classes
-    # such as IAS_FftMtf, IAS_FftMap, etc. 
-    # If we just return the IA_ interface only the common set of methods are available
-    # to the caller. In order to use the properties specific to a particular analysis
-    # the caller needs to cast the interface.
-    # If we merely cast the IAS_ object to the specialized interface in order to access
-    # the properties, then the common set of methods from the base class (IAS_) are no
-    # longer available. Thefore, we do the following to ensure that the returned 
-    # settings object has both the common set of methods and the specific properties.
+    # the IA_.GetSettings() returns IAS_ which is the base class of all other settings 
+    # objects such as IAS_FftMtf, IAS_FftMap, etc. The base-class IAS_ objects needs to be 
+    # "specialized" for a particular analysis using the _CastTo function. When we apply 
+    # CastTo(), the specialized objects "gain" the specific analysis functions and properties.
+    # before returning, when we invoke _wrapped_zos_object(), the base-class methods and 
+    # properties also gets patched. 
     
     settings_base = self._ia_.GetSettings()
     
@@ -64,9 +59,7 @@ def GetSettings(self):
         
     # create the settings object 
     settings = _wrapped_zos_object(settings)
-    
-    # add the common set of methods of the base settings interface  
-    _replicate_methods(srcObj=settings_base, dstObj=settings)
+
     return settings
 
 # Extra methods

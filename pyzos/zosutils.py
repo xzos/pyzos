@@ -9,6 +9,7 @@
 from __future__ import division, print_function
 import sys as _sys
 import warnings as _warnings
+from win32com.client import CastTo as _CastTo
 
 def get_callable_method_dict(obj):
     """Returns a dictionary of callable methods of object `obj`.
@@ -73,23 +74,31 @@ def get_properties(zos_obj):
 class ZOSPropMapper(object):
     """Descriptor for mapping ZOS object properties to corresponding wrapper classes
     """
-    def __init__(self, zos_interface_attr, property_name, setter=False):
+    def __init__(self, zos_interface_attr, property_name, setter=False, cast_to=None):
         """
         @param zos_interface_attr : attribute used to dispatch method/property calls to 
         the zos_object (it hold the zos_object)
         @param propname : string, like 'SystemName' for IOpticalSystem
         @param setter : if False, a read-only data descriptor is created
+        @param cast_to : Name of class (generally the base class) whose property to call
         """
         self.property_name = property_name  # property_name is a string like 'SystemName' for IOpticalSystem
         self.zos_interface_attr = zos_interface_attr  
         self.setter = setter
+        self.cast_to = cast_to
 
     def __get__(self, obj, objtype):
-        return getattr(obj.__dict__[self.zos_interface_attr], self.property_name)
+        if self.cast_to:   
+            return getattr(_CastTo(obj.__dict__[self.zos_interface_attr], self.cast_to), self.property_name)
+        else:
+            return getattr(obj.__dict__[self.zos_interface_attr], self.property_name)
         
     def __set__(self, obj, value):
         if self.setter:
-            setattr(obj.__dict__[self.zos_interface_attr], self.property_name, value)
+            if self.cast_to:
+                setattr(_CastTo(obj.__dict__[self.zos_interface_attr], self.cast_to), self.property_name, value)
+            else:
+                setattr(obj.__dict__[self.zos_interface_attr], self.property_name, value)
         else:
             raise AttributeError("Can't set {}".format(self.property_name))
             
@@ -104,13 +113,23 @@ def managed_wrapper_class_factory(zos_obj):
     dispatch_attr = '_' + cls_name.lower()  # protocol to be followed to store the ZOS COM object
     
     cdict = {}  # class dictionary
-    
-    # patch the property attributes
+
+    # patch the properties of the base objects 
+    base_cls_list = inheritance_dict.get(cls_name, None)
+    if base_cls_list:
+        for base_cls_name in base_cls_list:
+            getters, setters = get_properties(_CastTo(zos_obj, base_cls_name))
+            for each in getters:
+                exec("p{} = ZOSPropMapper('{}', '{}', cast_to='{}')".format(each, dispatch_attr, each, base_cls_name), globals(), cdict)
+            for each in setters:
+                exec("p{} = ZOSPropMapper('{}', '{}', setter=True, cast_to='{}')".format(each, dispatch_attr, each, base_cls_name), globals(), cdict)
+
+    # patch the property attributes of the given ZOS object
     getters, setters = get_properties(zos_obj)
     for each in getters:
         exec("p{} = ZOSPropMapper('{}', '{}')".format(each, dispatch_attr, each), globals(), cdict)
     for each in setters:
-        exec("p{} = ZOSPropMapper('{}', '{}', True)".format(each, dispatch_attr, each), globals(), cdict)
+        exec("p{} = ZOSPropMapper('{}', '{}', setter=True)".format(each, dispatch_attr, each), globals(), cdict)
     
     def __init__(self, zos_obj):
         
@@ -120,7 +139,15 @@ def managed_wrapper_class_factory(zos_obj):
         self.__dict__[dispatch_attr] = zos_obj
         self._dispatch_attr_value = dispatch_attr # used in __getattr__
         
-        # patch the methods
+        # Store base class object 
+        self._base_cls_list = inheritance_dict.get(cls_name, None)
+
+        # patch the methods of the base class(s) of the given ZOS object
+        if self._base_cls_list:
+            for base_cls_name in self._base_cls_list:
+                replicate_methods(_CastTo(zos_obj, base_cls_name), self)
+
+        # patch the methods of given ZOS object 
         replicate_methods(zos_obj, self)
     
     # Provide a way to make property calls without the prefix p, but don't try to wrap the returned object 
@@ -154,5 +181,111 @@ def wrapped_zos_object(zos_obj):
     The function dynamically creates a wrapped class with all the provided methods, 
     properties, and custom methods monkey patched; and returns an instance of it.
     """
-    Class = managed_wrapper_class_factory(zos_obj)
+    assert 'CLSID' in dir(zos_obj) # prevent already wrapped objects #TODO: Change the assert to return the object as is if already wrapped
+    Class = managed_wrapper_class_factory(zos_obj)                   # maybe, wrapped objects should have a _wrapped (=True) attribute.
     return Class(zos_obj)
+
+#%% ZOS object inheritance relationships dictionary
+# Unfortunately this dict is created manually following the ZOS-API documentation. There
+# is no way to know this relationship querying the pythoncom objects.
+# Rules (and assumptions made by functions using this dict):
+#  1. The base class hierarchy is encoded as lists (i.e. elements are ordered) in the value fields of the dict 
+#  2. The dict only contain those ZOS objects that have one or more parent classes. i.e. empty lists are not
+#     allowed. 
+#  3. The order of super classes in each list: [immediate-base-cls, next-level-base-cls, ..., top-most-base-cls]
+inheritance_dict = {
+    ## IEditor Interface - base interface for all 5 editors
+    'ILensDataEditor' : ['IEditor',],
+    'IMultiConfigEditor' : ['IEditor',],
+    'IMeritFunctionEditor' : ['IEditor',],
+    'INonSeqEditor' : ['IEditor',],
+    'IToleranceDataEditor' : ['IEditor',],
+    ## IAS_ Interface - base class for all analysis settings interfaces
+    # Aberrations interface settings
+    'IAS_FieldCurvatureAndDistortion' : ['IAS_',],
+    'IAS_FocalShiftDiagram' : ['IAS_',],
+    'IAS_GridDistortion' : ['IAS_',],
+    'IAS_LateralColor' : ['IAS_',],
+    'IAS_LongitudinalAberration' : ['IAS_',],
+    'IAS_RayTrace' : ['IAS_',],
+    'IAS_SeidelCoefficients' : ['IAS_',],
+    'IAS_SeidelDiagram' : ['IAS_',],
+    'IAS_ZernikeAnnularCoefficients' : ['IAS_',],
+    'IAS_ZernikeCoefficientsVsField' : ['IAS_',],
+    'IAS_ZernikeFringeCoefficients' : ['IAS_',],
+    'IAS_ZernikeStandardCoefficients' : ['IAS_',],
+    # EncircledEnergy interface settings
+    'IAS_DiffractionEncircledEnergy' : ['IAS_',],
+    'IAS_ExtendedSourceEncircledEnergy' : ['IAS_',],
+    'IAS_GeometricEncircledEnergy' : ['IAS_',],
+    'IAS_GeometricLineEdgeSpread' : ['IAS_',],
+    # Fans interface settings
+    'IAS_Fan' : ['IAS_',],
+    # Mtf interface settings
+    'IAS_FftMtf' : ['IAS_',],
+    'IAS_FftMtfMap' : ['IAS_',],
+    'IAS_FftMtfvsField' : ['IAS_',],
+    'IAS_FftSurfaceMtf' : ['IAS_',],
+    'IAS_FftThroughFocusMtf' : ['IAS_',],
+    'IAS_GeometricMtf' : ['IAS_',],
+    'IAS_GeometricMtfMap' : ['IAS_',],
+    'IAS_GeometricMtfvsField' : ['IAS_',],
+    'IAS_GeometricThroughFocusMtf' : ['IAS_',],
+    'IAS_HuygensMtf' : ['IAS_',],
+    'IAS_HuygensMtfvsField' : ['IAS_',],
+    'IAS_HuygensSurfaceMtf' : ['IAS_',],
+    'IAS_HuygensThroughFocusMtf' : ['IAS_',],
+    # Psf interface settings
+    'IAS_FftPsf' : ['IAS_',],
+    'IAS_FftPsfCrossSection' : ['IAS_',],
+    'IAS_FftPsfLineEdgeSpread' : ['IAS_',],
+    'IAS_HuygensPsf' : ['IAS_',],
+    'IAS_HuygensPsfCrossSection' : ['IAS_',],
+    # RayTracing interface settings 
+    'IAS_DetectorViewer' : ['IAS_',],
+    # RMS interface settings
+    'IAS_RMSField' : ['IAS_',],
+    'IAS_RMSFieldMap' : ['IAS_',],
+    'IAS_RMSFocus' : ['IAS_',],
+    'IAS_RMSLambdaDiagram' : ['IAS_',],
+    # Spot interface settings
+    'IAS_Spot' : ['IAS_',],
+    # Surface interface settings
+    'IAS_SurfaceCurvature' : ['IAS_',],
+    'IAS_SurfaceCurvatureCross' : ['IAS_',],
+    'IAS_SurfacePhase' : ['IAS_',],
+    'IAS_SurfacePhaseCross' : ['IAS_',],
+    'IAS_SurfaceSag' : ['IAS_',],
+    'IAS_SurfaceSagCross' : ['IAS_',],
+    # Wavefront interface settings
+    'IAS_Foucault' : ['IAS_',],
+    ## IOpticalSystemTools Interface - base class for all system tools
+    'IBatchRayTrace' : ['ISystemTool',],
+    'IConvertToNSCGroup' : ['ISystemTool',],
+    'ICreateArchive' : ['ISystemTool',],
+    'IExportCAD' : ['ISystemTool',],
+    'IGlobalOptimization' : ['ISystemTool',],
+    'IHammerOptimization' : ['ISystemTool',],
+    'ILensCatalogs' : ['ISystemTool',],
+    'ILightningTrace' : ['ISystemTool',],
+    'ILocalOptimization' : ['ISystemTool',],
+    'IMFCalculator' : ['ISystemTool',],
+    'INSCRayTrace' : ['ISystemTool',],
+    'IQuickAdjust' : ['ISystemTool',],
+    'IQuickFocus' : ['ISystemTool',],
+    'IRestoreArchive' : ['ISystemTool',],
+    'IScale' : ['ISystemTool',],
+    'ITolerancing' : ['ISystemTool',],    
+    ## IWizard Interface - base interface for all wizards
+    'INSCWizard' : ['IWizard',],
+    'INSCBitmapWizard' : ['INSCWizard', 'IWizard',],   
+    'INSCOptimizationWizard' : ['INSCWizard', 'IWizard',], 
+    'INSCRoadwayLightingWizard' : ['IWizard',],
+    'IToleranceWizard' : ['IWizard',], 
+    'INSCToleranceWizard': ['IToleranceWizard', 'IWizard',], 
+    'ISEQToleranceWizard' : ['IToleranceWizard', 'IWizard',], 
+    'ISEQOptimizationWizard' : ['IWizard',],
+}
+# Ensure Rule #2 of inheritance_dict.
+for each in inheritance_dict.values():
+    assert len(each), 'Empty base class list not allowed in inheritance_dict'

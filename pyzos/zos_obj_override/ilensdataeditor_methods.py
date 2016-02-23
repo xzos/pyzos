@@ -22,28 +22,6 @@ def AddRow(self):
     base_lde = _CastTo(self._ilensdataeditor, 'IEditor')
     return _wrapped_zos_object(base_lde.AddRow())
 
-
-def DeleteAllRows(self):
-    """Deletes all rows from the current editor"""
-    base_lde = _CastTo(self._ilensdataeditor, 'IEditor')
-    return base_lde.DeleteAllRows()
-
-
-def DeleteRowAt(self, pos):
-    """Deletes a row at the specified index (0 to NumberOfRows-1)
-    @pos : The index of the first row to remove
-    """
-    base_lde = _CastTo(self._ilensdataeditor, 'IEditor')
-    return base_lde.DeleteRowAt(pos)
-
-def DeleteRowsAt(self, pos, numOfRows):
-    """Deletes one or more rows at the specified index (0 to NumberOfRows-1)
-    @pos : The index of the first row to remove
-    @numOfRows : The number of rows to remove
-    """
-    base_lde = _CastTo(self._ilensdataeditor, 'IEditor')
-    return base_lde.DeleteRowsAt(pos, numOfRows)
-
 def GetPupil(self):
     """Retrieve pupil data
     """
@@ -72,29 +50,6 @@ def GetSurfaceAt(self, surfNum):
 
 # Overridden properties
 # ---------------------
-@property
-def pEditor(self):
-    """Gets the type of editor instance"""
-    base_lde = _CastTo(self._ilensdataeditor, 'IEditor')
-    return base_lde.Editor
-
-@property
-def pMaxColumn(self):
-    """The maximum column index that can be used in calls to GetCellAt()"""
-    base_lde = _CastTo(self._ilensdataeditor, 'IEditor')
-    return base_lde.MaxColumn
-
-@property
-def pMinColumn(self):
-    """The minimum column index that can be used in calls to GetCellAt()"""
-    base_lde = _CastTo(self._ilensdataeditor, 'IEditor')
-    return base_lde.MinColumn
-
-@property
-def pNumberOfRows(self):
-    """Gets the number of rows in this editor"""
-    base_lde = _CastTo(self._ilensdataeditor, 'IEditor')
-    return base_lde.NumberOfRows
 
 
 # Extra methods
