@@ -11,6 +11,9 @@ import sys as _sys
 import warnings as _warnings
 from win32com.client import CastTo as _CastTo
 
+#%% Module Global variables
+_NO_MODULE_WARNING = False   # Tempory no-module warning (for development)
+
 def get_callable_method_dict(obj):
     """Returns a dictionary of callable methods of object `obj`.
 
@@ -164,8 +167,9 @@ def managed_wrapper_class_factory(zos_obj):
     module_import_str = """
 try: 
     from pyzos.zos_obj_override.{module:} import *
-except ImportError: 
-    _warnings.warn('No module {module:} found', UserWarning, 2)
+except ImportError:
+    if _NO_MODULE_WARNING:
+        _warnings.warn('No module {module:} found', UserWarning, 2)
 """.format(module=cls_name.lower() + '_methods')
     exec(module_import_str, globals(), cdict)
 
