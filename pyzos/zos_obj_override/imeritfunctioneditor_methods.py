@@ -33,10 +33,10 @@ def GetRowAt(self, pos):
 
 # Overridden properties
 # ---------------------
-@property
-def pSEQOptimizationWizard(self):
-    """Get the Sequential Optimization Wizard """
-    return _wrapped_zos_object(self._imeritfunctioneditor.SEQOptimizationWizard)
+#@property
+#def pSEQOptimizationWizard(self):
+#    """Get the Sequential Optimization Wizard """
+#    return _wrapped_zos_object(self._imeritfunctioneditor.SEQOptimizationWizard)
 
 #@property
 #def pNSCOptimizationWizard(self):

@@ -233,12 +233,21 @@ class OpticalSystem(object):
     # Not required for now ... IOpticalSystem doesn't have any base class (currently)
         
     # Patch managed properties of ZOS IOpticalSystem
+    pAnalyses = _ZOSPropMapper('_iopticalsystem', 'Analyses')
     pIsNonAxial = _ZOSPropMapper('_iopticalsystem', 'IsNonAxial')
+    pLDE = _ZOSPropMapper('_iopticalsystem', 'LDE')
+    pMCE = _ZOSPropMapper('_iopticalsystem', 'MCE')
+    pMFE = _ZOSPropMapper('_iopticalsystem', 'MFE')
     pMode = _ZOSPropMapper('_iopticalsystem', 'Mode')
     pNeedsSave = _ZOSPropMapper('_iopticalsystem', 'NeedsSave')
+    pNCE = _ZOSPropMapper('_iopticalsystem', 'NCE')
+    pSystemData = _ZOSPropMapper('_iopticalsystem', 'SystemData')
     pSystemFile = _ZOSPropMapper('_iopticalsystem', 'SystemFile')
     pSystemID = _ZOSPropMapper('_iopticalsystem', 'SystemID')
-    pSystemName = _ZOSPropMapper('_iopticalsystem', 'SystemName', setter=True)
+    pSystemName = _ZOSPropMapper('_iopticalsystem', 'SystemName', setter=True)    
+    pTDE = _ZOSPropMapper('_iopticalsystem', 'TDE')
+    pTheApplication = _ZOSPropMapper('_iopticalsystem', 'TheApplication')
+    pTools = _ZOSPropMapper('_iopticalsystem', 'Tools')
     
     def __init__(self, sync_ui=False, mode=0):
         """Returns an instance of Optical System
@@ -334,56 +343,11 @@ class OpticalSystem(object):
         else:
             self._iopticalsystem.Save()
 
-    #%% Overridden Properties
+    #%% Extra / Custom Properties
     @property
     def pConnectIsAlive(self):
         """ZOS-API connection active/inactive status"""
         return _PyZOSApp.connect.IsAlive
-    
-    @property
-    def pAnalyses(self):
-        """Gets the analyses for the current system (wrapped)"""
-        return wrapped_zos_object(self._iopticalsystem.Analyses)
-    
-    @property
-    def pLDE(self):
-        """Gets the lens data editor interface (wrapped)"""
-        return wrapped_zos_object(self._iopticalsystem.LDE)
-    
-    @property
-    def pMCE(self):
-        """Gets the Gets the multi-configuration editor interface (wrapped)"""
-        return wrapped_zos_object(self._iopticalsystem.MCE)
-    
-    @property
-    def pMFE(self):
-        """Gets the Gets the multi-function editor interface (wrapped)"""
-        return wrapped_zos_object(self._iopticalsystem.MFE)
-
-    @property
-    def pNCE(self):
-        """Gets the Gets the Non-Sequential Component editor interface (wrapped)"""
-        return wrapped_zos_object(self._iopticalsystem.NCE)
-    
-    @property
-    def pSystemData(self):
-        """Gets the System Explorer interface (wrapped)"""
-        return wrapped_zos_object(self._iopticalsystem.SystemData)
-
-    @property
-    def pTDE(self):
-        """Gets the tolerance data editor interface (wrapped)"""
-        return wrapped_zos_object(self._iopticalsystem.TDE)
-
-    @property
-    def pTheApplication(self):
-        """The ZOSAPI_Application (wrapped)"""
-        return wrapped_zos_object(self._iopticalsystem.TheApplication)
-    
-    @property
-    def pTools(self):
-        """Gets an interface used to run various tools on the optical system (wrapped)"""
-        return wrapped_zos_object(self._iopticalsystem.Tools)
     
     #%% Extra / Custom methods 
     def zGetSurfaceData(self, surfNum):

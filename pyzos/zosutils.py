@@ -92,10 +92,10 @@ class ZOSPropMapper(object):
 
     def __get__(self, obj, objtype):
         if self.cast_to:   
-            return getattr(_CastTo(obj.__dict__[self.zos_interface_attr], self.cast_to), self.property_name)
+            return wrapped_zos_object(getattr(_CastTo(obj.__dict__[self.zos_interface_attr], self.cast_to), self.property_name))
         else:
-            return getattr(obj.__dict__[self.zos_interface_attr], self.property_name)
-        
+            return wrapped_zos_object(getattr(obj.__dict__[self.zos_interface_attr], self.property_name))
+    
     def __set__(self, obj, value):
         if self.setter:
             if self.cast_to:
