@@ -17,18 +17,18 @@ from pyzos.zosutils import wrapped_zos_object as _wrapped_zos_object
 
 # Overridden methods
 # ------------------
-def AddRow(self):
-    """Adds a new row at the end of the editor."""
-    base_mfe = _CastTo(self._imeritfunctioneditor, 'IEditor')
-    return _wrapped_zos_object(base_mfe.AddRow())
+#def AddRow(self):
+#    """Adds a new row at the end of the editor."""
+#    base_mfe = _CastTo(self._imeritfunctioneditor, 'IEditor')
+#    return _wrapped_zos_object(base_mfe.AddRow())
 
 
-def GetRowAt(self, pos):
-    """Gets the row at the specified index (0 to NumberOfRows-1).
-    @pos : The row index.
-    """
-    base_mfe = _CastTo(self._imeritfunctioneditor, 'IEditor')
-    return _wrapped_zos_object(base_mfe.GetRowAt(pos))
+#def GetRowAt(self, pos):
+#    """Gets the row at the specified index (0 to NumberOfRows-1).
+#    @pos : The row index.
+#    """
+#    base_mfe = _CastTo(self._imeritfunctioneditor, 'IEditor')
+#    return _wrapped_zos_object(base_mfe.GetRowAt(pos))
 
 
 # Overridden properties

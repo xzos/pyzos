@@ -55,7 +55,11 @@ def replicate_methods(srcObj, dstObj):
     #print('overridden_methods:', overridden_methods)
     for key, value in get_callable_method_dict(srcObj).items():
         if key not in overridden_methods:
-            setattr(dstObj, key, value)
+            #setattr(dstObj, key, value)
+            print('\n>> Replicating method:')
+            print('key:', key)
+            print('value:', value)
+            setattr(dstObj, key, wrapped_zos_object(value))
         
 def get_properties(zos_obj):
     """Returns a lists of properties bound to the object `zos_obj`
@@ -156,9 +160,9 @@ def managed_wrapper_class_factory(zos_obj):
         # mark object as wrapped to prevent it from being wrapped subsequently
         self._wrapped = True
     
-    # Provide a way to make property calls without the prefix p, but don't try to wrap the returned object 
+    # Provide a way to make property calls without the prefix p
     def __getattr__(self, attrname):
-        return getattr(self.__dict__[self._dispatch_attr_value], attrname)
+        return wrapped_zos_object(getattr(self.__dict__[self._dispatch_attr_value], attrname))
         
     cdict['__init__'] = __init__
     cdict['__getattr__'] = __getattr__
@@ -190,6 +194,9 @@ def wrapped_zos_object(zos_obj):
     The function dynamically creates a wrapped class with all the provided methods, 
     properties, and custom methods monkey patched; and returns an instance of it.
     """
+    print('... Wrappped_zos_object called for object:')
+    print(repr(zos_obj))
+    print("Has CLSID ?", 'CLSID' in dir(zos_obj))
     if hasattr(zos_obj, '_wrapped') or ('CLSID' not in dir(zos_obj)):
         return zos_obj
     else:
