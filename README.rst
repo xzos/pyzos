@@ -5,7 +5,7 @@ Python Zemax OpticStudio API
 
 Current revision
 ''''''''''''''''
-The current code (version 0.0.3) is a working PROTOTYPE! 
+The current code (version 0.0.4a) is a working PROTOTYPE! 
 
 Philosophy / Design Goals
 '''''''''''''''''''''''''
@@ -14,7 +14,8 @@ Problems
 ~~~~~~~~
 
 The ZOS-API is an excellent interface for OpticStudio. However, using the ZOS COM API in 
-Python through PyWin32 creates some problems: 
+Python directly through PyWin32 is not conducive and feels very unpythonic for the following
+reasons: 
 
 * the large set of *property* attributes of the ZOS objects are not introspectable, 
 * several interface objects require appropriate type casting before use, and 
@@ -33,7 +34,7 @@ The philosophy behind PyZOS is to make ZOS-API easier to use in Python by:
   * providing a set of helper methods that encapsulates common tasks
   * allowing helper methods to be easily coupled to existing ZOS objects for custom functions
   * managing appropriate type casting of ZOS objects
-4. do all the above without limiting or obscuring the ZOS-API in any way. 
+4. do all the above without limiting or obscuring the ZOS-API in any way.
 
 These *enhancements* to ZOS-API using PyZOS library are documented in this (work in progress) 
 `Jupyter notebook <http://nbviewer.jupyter.org/github/pyzos/pyzos/blob/master/Examples/jupyter_notebooks/00_Enhancing_the_ZOS_API_Interface.ipynb>`__.   
@@ -57,6 +58,15 @@ Example usage
     ...
  
 
+How can I contribute?
+'''''''''''''''''''''
+You can contribute in may ways:
+
+1. using the library and giving feedback, suggestions and reporting bugs 
+2. adding custom functions you wrote for your project that others can use
+3. helping to write the unit-test, adding test cases
+4. letting others know about PyZOS (if you found it useful)
+
 
 Dependencies
 ''''''''''''
@@ -72,5 +82,3 @@ License
 '''''''
 
 The code is under the `MIT License <http://opensource.org/licenses/MIT>`__.
-
-
