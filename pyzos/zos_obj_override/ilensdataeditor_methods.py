@@ -17,10 +17,6 @@ from pyzos.zosutils import wrapped_zos_object as _wrapped_zos_object
 
 # Overridden methods
 # ------------------
-def AddRow(self):
-    """Adds a new row at the end of the editor."""
-    base_lde = _CastTo(self._ilensdataeditor, 'IEditor')
-    return _wrapped_zos_object(base_lde.AddRow())
 
 def GetPupil(self):
     """Retrieve pupil data
@@ -35,17 +31,6 @@ def GetPupil(self):
                                                'ApodizationFactor'])
     data = self._ilensdataeditor.GetPupil()
     return pupil_data(*data)
-
-def GetRowAt(self, pos):
-    """Gets the row at the specified index (0 to NumberOfRows-1).
-    @pos : The row index.
-    """
-    base_lde = _CastTo(self._ilensdataeditor, 'IEditor')
-    return _wrapped_zos_object(base_lde.GetRowAt(pos))
-
-def GetSurfaceAt(self, surfNum):
-    """Gets the data for the specified surface."""
-    return _wrapped_zos_object(self._ilensdataeditor.GetSurfaceAt(surfNum))
 
 
 # Overridden properties

@@ -8,11 +8,8 @@
 #-------------------------------------------------------------------------------
 from __future__ import division, print_function
 import sys as _sys
-import warnings as _warnings
 from win32com.client import CastTo as _CastTo
 
-#%% Module Global variables
-_NO_MODULE_WARNING = False   # Tempory no-module warning (for development)
 
 def get_callable_method_dict(obj):
     """Returns a dictionary of callable methods of object `obj`.
@@ -52,10 +49,19 @@ def replicate_methods(srcObj, dstObj):
     # python script such as i_analyses_methods.py for I_Analyses
     overridden_methods = get_callable_method_dict(type(dstObj)).keys()
     #overridden_attrs = [each for each in type(dstObj).__dict__.keys() if not each.startswith('_')]
-    #print('overridden_methods:', overridden_methods)
+    # 
+
+    def zos_wrapper_deco(func):
+        def wrapper(*args, **kwargs):
+            return wrapped_zos_object(func(*args, **kwargs))
+        varnames_set = set(func.im_func.func_code.co_varnames) # alternative is to use inspect.getargspec
+        params = tuple(varnames_set.difference({'self', 'ret'})) # removes 'self' and 'ret'
+        wrapper.__doc__ = func.im_func.func_name + '(' + ', '.join(params) + ')' 
+        return wrapper 
+    #
     for key, value in get_callable_method_dict(srcObj).items():
         if key not in overridden_methods:
-            setattr(dstObj, key, value)
+            setattr(dstObj, key, zos_wrapper_deco(value))
         
 def get_properties(zos_obj):
     """Returns a lists of properties bound to the object `zos_obj`
@@ -92,10 +98,10 @@ class ZOSPropMapper(object):
 
     def __get__(self, obj, objtype):
         if self.cast_to:   
-            return getattr(_CastTo(obj.__dict__[self.zos_interface_attr], self.cast_to), self.property_name)
+            return wrapped_zos_object(getattr(_CastTo(obj.__dict__[self.zos_interface_attr], self.cast_to), self.property_name))
         else:
-            return getattr(obj.__dict__[self.zos_interface_attr], self.property_name)
-        
+            return wrapped_zos_object(getattr(obj.__dict__[self.zos_interface_attr], self.property_name))
+    
     def __set__(self, obj, value):
         if self.setter:
             if self.cast_to:
@@ -156,9 +162,9 @@ def managed_wrapper_class_factory(zos_obj):
         # mark object as wrapped to prevent it from being wrapped subsequently
         self._wrapped = True
     
-    # Provide a way to make property calls without the prefix p, but don't try to wrap the returned object 
+    # Provide a way to make property calls without the prefix p
     def __getattr__(self, attrname):
-        return getattr(self.__dict__[self._dispatch_attr_value], attrname)
+        return wrapped_zos_object(getattr(self.__dict__[self._dispatch_attr_value], attrname))
         
     cdict['__init__'] = __init__
     cdict['__getattr__'] = __getattr__
@@ -168,8 +174,7 @@ def managed_wrapper_class_factory(zos_obj):
 try: 
     from pyzos.zos_obj_override.{module:} import *
 except ImportError:
-    if _NO_MODULE_WARNING:
-        _warnings.warn('No module {module:} found', UserWarning, 2)
+    pass
 """.format(module=cls_name.lower() + '_methods')
     exec(module_import_str, globals(), cdict)
 

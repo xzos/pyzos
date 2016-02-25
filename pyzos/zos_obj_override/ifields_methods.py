@@ -14,13 +14,6 @@ from pyzos.zosutils import wrapped_zos_object as _wrapped_zos_object
 
 # Overridden methods
 # ------------------
-def AddField(self, X, Y, weight):
-    """Add a new field, after all the current fields."""
-    return _wrapped_zos_object(self._ifields.AddField(X, Y, weight))
-
-def GetField(self, position):
-    """Gets the specified field."""
-    return _wrapped_zos_object(self._ifields.GetField(position))
 
 # Extra methods
 # -------------

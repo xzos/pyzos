@@ -14,8 +14,7 @@ from pyzos.zosutils import wrapped_zos_object as _wrapped_zos_object
 
 # Overridden methods
 # ------------------
-def GetDataGrid(self, index):
-    return _wrapped_zos_object(self._iar_.GetDataGrid(index))
+
 
 # Extra methods
 # -------------
