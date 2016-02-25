@@ -22,14 +22,12 @@ from pyzos.zosutils import (ZOSPropMapper as _ZOSPropMapper,
 import pyzos.ddeclient as _dde
 
 
+#%% Custom Exceptions
+
+class InitializationError(Exception): pass
+
 #%% Global variables
 Const = None  # Constants (placeholder)
-
-#%% Custom Exceptions
-class _ConnectionError(Exception): pass 
-class _InitializationError(Exception): pass
-class _ZOSSystemError(Exception): pass
-
 
 #%% Module helper functions
 def _get_python_version():
@@ -204,25 +202,28 @@ class _PyZDDE(object):
 
 #%% ZOS API Application Class
 class _PyZOSApp(object):
+    """Wrapper class for ZOS-API application."""
     app = None
     connect = None
     
     def __new__(cls):
         global Const
         if not cls.app:
-            #TODO: Add relavent exceptions
             # ensure win32com support files for ZOSAPI_Interfaces are available,
             # generate if necessary.
             _comclient.gencache.EnsureModule('ZOSAPI_Interfaces', 0, 1, 0)
             edispatch = _comclient.gencache.EnsureDispatch
             cls.connect = edispatch('ZOSAPI.ZOSAPI_Connection')
             cls.app = cls.connect.CreateNewApplication()
+            if not cls.connect.IsAlive:
+                raise InitializationError("Couldn't connect to OpticStudio. "
+                    "Ensure hardware/software/network license key is properly installed." )
             Const = type('Const', (), _get_constants_dict()) # Constants class
         return cls.app
 
 #%% Optical System Class
 class OpticalSystem(object):
-    """Wrapper for IOpticalSystem interface
+    """Wrapper class for for IOpticalSystem interface.
     """
     _instantiated = False
     _pyzosapp = None
@@ -249,8 +250,19 @@ class OpticalSystem(object):
     pTools = _ZOSPropMapper('_iopticalsystem', 'Tools')
     
     def __init__(self, sync_ui=False, mode=0):
-        """Returns an instance of Optical System
-        @param mode : sequential (0) or non-sequential (1)
+        """Returns instance of PyZOS Optical System Interface
+
+        Parameters
+        ----------
+        sync_ui : boolean
+            If `True`, then syncing mechanism with a running UI is activated.
+        mode : integer (0 or 1)
+            Sequential (0) or Non-sequential (1) mode 
+
+        Returns
+        -------
+        osys : pyzos object 
+            instance of wrapped IOpticalSystem ZOS object
         """
         if OpticalSystem._instantiated:
             self._iopticalsystem = OpticalSystem._pyzosapp.CreateNewSystem(mode) # wrapped object
@@ -267,6 +279,7 @@ class OpticalSystem(object):
         self._wrapped = True
             
         ## activate PyZDDE if sync_ui requested
+        self._sync_ui = False
         self._sync_ui_file = None
         self._file_to_save_on_Save = None
         if sync_ui:
@@ -283,6 +296,9 @@ class OpticalSystem(object):
     # Provide a way to make property calls without the prefix p, 
     def __getattr__(self, attrname):
         return wrapped_zos_object(getattr(self._iopticalsystem, attrname))
+
+    def __repr__(self):
+        return "{.__name__}(sync_ui={}, mode={})".format(type(self), self._sync_ui, self.pMode)
     
     def __del__(self):
         if self._sync_ui_file:
@@ -300,7 +316,8 @@ class OpticalSystem(object):
         if not OpticalSystem._dde_link:
             OpticalSystem._dde_link = _get_new_dde_link()
         if not self._sync_ui_file:
-            self._sync_ui_file = _get_sync_ui_filename() 
+            self._sync_ui_file = _get_sync_ui_filename()
+        self._sync_ui = True
 
     def zPushLens(self, update=None):
         """Push lens in ZOS COM server to UI"""
