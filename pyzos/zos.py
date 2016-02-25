@@ -15,7 +15,6 @@ import collections as _co
 import win32com.client as _comclient
 import tempfile as _tempfile
 import time as _time
-import warnings as _warnings
 from pyzos.zosutils import (ZOSPropMapper as _ZOSPropMapper, 
                             replicate_methods as _replicate_methods,
                             inheritance_dict as _inheritance_dict,
@@ -281,9 +280,9 @@ class OpticalSystem(object):
         ## patch methods from ZOS IOpticalSystem to the wrapped object
         _replicate_methods(self._iopticalsystem, self)
 
-    # Provide a way to make property calls without the prefix p, but don't try to wrap the returned object            
+    # Provide a way to make property calls without the prefix p, 
     def __getattr__(self, attrname):
-        return getattr(self._iopticalsystem, attrname)
+        return wrapped_zos_object(getattr(self._iopticalsystem, attrname))
     
     def __del__(self):
         if self._sync_ui_file:

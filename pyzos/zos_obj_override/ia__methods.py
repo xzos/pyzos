@@ -16,8 +16,6 @@ from pyzos.zosutils import (wrapped_zos_object as _wrapped_zos_object,
 
 # Overridden methods
 # ------------------
-#def GetResults(self):
-#    return _wrapped_zos_object(self._ia_.GetResults())
 
 def GetSettings(self):
     # the IA_.GetSettings() returns IAS_ which is the base class of all other settings 

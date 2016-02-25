@@ -17,21 +17,6 @@ from pyzos.zosutils import wrapped_zos_object as _wrapped_zos_object
 
 # Overridden properties
 # ---------------------
-#@property
-#def pAperture(self):
-#    """Gets the aperture data object"""
-#    return _wrapped_zos_object(self._isystemdata.Aperture)
-
-#@property
-#def pFields(self):
-#    """Gets the fields data object"""
-#    return _wrapped_zos_object(self._isystemdata.Fields)
-
-#@property
-#def pWavelengths(self):
-#    """Gets the wavelengths data object"""
-#    return _wrapped_zos_object(self._isystemdata.Wavelengths)
-
 
 # Extra methods
 # -------------

@@ -8,11 +8,8 @@
 #-------------------------------------------------------------------------------
 from __future__ import division, print_function
 import sys as _sys
-import warnings as _warnings
 from win32com.client import CastTo as _CastTo
 
-#%% Module Global variables
-_NO_MODULE_WARNING = False   # Tempory no-module warning (for development)
 
 def get_callable_method_dict(obj):
     """Returns a dictionary of callable methods of object `obj`.
@@ -52,14 +49,19 @@ def replicate_methods(srcObj, dstObj):
     # python script such as i_analyses_methods.py for I_Analyses
     overridden_methods = get_callable_method_dict(type(dstObj)).keys()
     #overridden_attrs = [each for each in type(dstObj).__dict__.keys() if not each.startswith('_')]
-    #print('overridden_methods:', overridden_methods)
+    # 
+
+    def zos_wrapper_deco(func):
+        def wrapper(*args, **kwargs):
+            return wrapped_zos_object(func(*args, **kwargs))
+        varnames_set = set(func.im_func.func_code.co_varnames) # alternative is to use inspect.getargspec
+        params = tuple(varnames_set.difference({'self', 'ret'})) # removes 'self' and 'ret'
+        wrapper.__doc__ = func.im_func.func_name + '(' + ', '.join(params) + ')' 
+        return wrapper 
+    #
     for key, value in get_callable_method_dict(srcObj).items():
         if key not in overridden_methods:
-            #setattr(dstObj, key, value)
-            print('\n>> Replicating method:')
-            print('key:', key)
-            print('value:', value)
-            setattr(dstObj, key, wrapped_zos_object(value))
+            setattr(dstObj, key, zos_wrapper_deco(value))
         
 def get_properties(zos_obj):
     """Returns a lists of properties bound to the object `zos_obj`
@@ -172,8 +174,7 @@ def managed_wrapper_class_factory(zos_obj):
 try: 
     from pyzos.zos_obj_override.{module:} import *
 except ImportError:
-    if _NO_MODULE_WARNING:
-        _warnings.warn('No module {module:} found', UserWarning, 2)
+    pass
 """.format(module=cls_name.lower() + '_methods')
     exec(module_import_str, globals(), cdict)
 
@@ -194,9 +195,6 @@ def wrapped_zos_object(zos_obj):
     The function dynamically creates a wrapped class with all the provided methods, 
     properties, and custom methods monkey patched; and returns an instance of it.
     """
-    print('... Wrappped_zos_object called for object:')
-    print(repr(zos_obj))
-    print("Has CLSID ?", 'CLSID' in dir(zos_obj))
     if hasattr(zos_obj, '_wrapped') or ('CLSID' not in dir(zos_obj)):
         return zos_obj
     else:
