@@ -5,7 +5,7 @@ Python Zemax OpticStudio API
 
 Current revision
 ''''''''''''''''
-The current code (version 0.0.4a) is a working PROTOTYPE! 
+0.0.5 (Last significant update on 02/26/2016) 
 
 Philosophy / Design Goals
 '''''''''''''''''''''''''
@@ -58,6 +58,18 @@ Example usage
     osys.zGetRefresh() # copy changes from the visible UI app to the ZOS COM server
     ...
  
+
+
+Install PyZOS from PyPI
+''''''''''''''''''''''''
+
+Use the following command from the command line to install PyZOS from PyPI:
+
+.. code:: python
+
+  pip install pyzos
+
+
 
 Interested in contributing?
 '''''''''''''''''''''''''''
