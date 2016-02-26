@@ -5,7 +5,7 @@ Python Zemax OpticStudio API
 
 Current revision
 ''''''''''''''''
-0.0.6 (Last significant update on 02/26/2016) 
+0.0.8 (Last significant update on 02/26/2016) 
 
 Philosophy / Design Goals
 '''''''''''''''''''''''''
@@ -28,14 +28,16 @@ Solutions
 
 The philosophy behind PyZOS is to make ZOS-API easier to use in Python by:
 
-1. enabling interactivity with a running OpticStudio user-interface (`see demo <https://www.youtube.com/watch?v=ot5CrjMXc_w>`__)
-2. providing better introspection of objects' properties and methods 
-3. reducing complexity by
-  * providing a set of custom helper-methods that accomplishes common tasks in single or fewest possible steps
-  * providing a framework for easily adding custom methods that seamlessly couple with existing ZOS objects
-  * managing appropriate type casting of ZOS objects so that we can concentrate on solving optical design problem
-4. do 1-3 without limiting or obscuring the ZOS-API in any way
-5. do 1-3 with as minimum coding as possible (i.e. do a lot by doing very little)
+* enabling interactivity with a running OpticStudio user-interface (`see demo <https://www.youtube.com/watch?v=ot5CrjMXc_w>`__)
+* providing better introspection of objects' properties and methods 
+* reducing complexity by
+
+  - providing a set of custom helper-methods that accomplishes common tasks in single or fewest possible steps
+  - providing a framework for easily adding custom methods that seamlessly couple with existing ZOS objects
+  - managing appropriate type casting of ZOS objects so that we can concentrate on solving optical design problem
+
+* do all the above without limiting or obscuring the ZOS-API in any way
+* do all the above with as minimum coding as possible (i.e. do a lot by doing very little)
 
 These *enhancements* to ZOS-API using PyZOS library are documented in this (work in progress) 
 `Jupyter notebook <http://nbviewer.jupyter.org/github/pyzos/pyzos/blob/master/Examples/jupyter_notebooks/00_Enhancing_the_ZOS_API_Interface.ipynb>`__.   
