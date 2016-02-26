@@ -54,8 +54,8 @@ def replicate_methods(srcObj, dstObj):
     def zos_wrapper_deco(func):
         def wrapper(*args, **kwargs):
             return wrapped_zos_object(func(*args, **kwargs))
-        varnames_set = set(func.im_func.func_code.co_varnames) # alternative is to use inspect.getargspec
-        params = tuple(varnames_set.difference({'self', 'ret'})) # removes 'self' and 'ret'
+        varnames = func.im_func.func_code.co_varnames # alternative is to use inspect.getargspec
+        params = [par for par in varnames if par not in ('self', 'ret')] # removes 'self' and 'ret'
         wrapper.__doc__ = func.im_func.func_name + '(' + ', '.join(params) + ')' 
         return wrapper 
     #
