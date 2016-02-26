@@ -5,7 +5,7 @@ Python Zemax OpticStudio API
 
 Current revision
 ''''''''''''''''
-0.0.5 (Last significant update on 02/26/2016) 
+0.0.6 (Last significant update on 02/26/2016) 
 
 Philosophy / Design Goals
 '''''''''''''''''''''''''
@@ -58,6 +58,7 @@ Example usage
     osys.zGetRefresh() # copy changes from the visible UI app to the ZOS COM server
     ...
  
+See more example use of PyZOS used within Jupyter notebooks `here <https://github.com/pyzos/pyzos/tree/master/Examples/jupyter_notebooks>`__.
 
 
 Install PyZOS from PyPI
