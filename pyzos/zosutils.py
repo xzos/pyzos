@@ -165,9 +165,17 @@ def managed_wrapper_class_factory(zos_obj):
     # Provide a way to make property calls without the prefix p
     def __getattr__(self, attrname):
         return wrapped_zos_object(getattr(self.__dict__[self._dispatch_attr_value], attrname))
+
+    def __repr__(self):
+        if type(self).__name__ == 'IZOSAPI_Application':
+            repr_str = "{.__name__}(NumberOfOpticalSystems = {})".format(type(self), self.pNumberOfOpticalSystems)
+        else:
+            repr_str = "{.__name__}".format(type(self))
+        return repr_str
         
     cdict['__init__'] = __init__
     cdict['__getattr__'] = __getattr__
+    cdict['__repr__'] = __repr__
     
     # patch custom methods from python files imported as modules
     module_import_str = """
