@@ -18,10 +18,10 @@ Python directly through PyWin32 is not conducive and feels very unpythonic for t
 reasons: 
 
 * the large set of *property* attributes of the ZOS objects are not introspectable, 
-* several interface objects require appropriate type casting before use, and 
-* the interface is quite complex (albeit flexible) requiring a significant amount of coding.
-* ZOS-API only works in standalone (headless) mode. This prevents one to interact with a 
-  running OpticStudio user-interface and observe changes made to the design instantly.   
+* several interface objects require appropriate type casting before use, 
+* the interface is quite complex (albeit flexible) requiring a significant amount of coding,
+* the ZOS-API only works in standalone (headless) mode. This prevents users from interacting with a 
+  running OpticStudio user-interface and observing changes made to the design instantly.   
 
 Solutions
 ~~~~~~~~~
