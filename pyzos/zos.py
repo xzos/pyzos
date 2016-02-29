@@ -13,6 +13,7 @@ import os as _os
 import sys as _sys
 import collections as _co
 import win32com.client as _comclient
+import pythoncom as _pythoncom
 import tempfile as _tempfile
 import time as _time
 from pyzos.zosutils import (ZOSPropMapper as _ZOSPropMapper, 
@@ -22,8 +23,7 @@ from pyzos.zosutils import (ZOSPropMapper as _ZOSPropMapper,
 import pyzos.ddeclient as _dde
 
 
-#%% Custom Exceptions
-
+#%% Custom Exceptions and Exception handling
 class InitializationError(Exception): pass
 
 #%% Global variables
@@ -215,10 +215,11 @@ class _PyZOSApp(object):
             edispatch = _comclient.gencache.EnsureDispatch
             cls.connect = edispatch('ZOSAPI.ZOSAPI_Connection')
             cls.app = cls.connect.CreateNewApplication()
-            if not cls.connect.IsAlive:
-                raise InitializationError("Couldn't connect to OpticStudio. "
-                    "Ensure hardware/software/network license key is properly installed." )
-            Const = type('Const', (), _get_constants_dict()) # Constants class
+            if cls.connect.IsAlive:
+                Const = type('Const', (), _get_constants_dict()) # Constants class
+            else:
+                raise InitializationError("Couldn't connect to OpticStudio; "
+                    "Ensure hw/sw/net license key is properly installed." )
         return cls.app
 
 #%% Optical System Class
@@ -264,14 +265,21 @@ class OpticalSystem(object):
         osys : pyzos object 
             instance of wrapped IOpticalSystem ZOS object
         """
+        self._iopticalsystem = None
         if OpticalSystem._instantiated:
             self._iopticalsystem = OpticalSystem._pyzosapp.CreateNewSystem(mode) # wrapped object
         else:
-            OpticalSystem._pyzosapp = _PyZOSApp()                         # wrapped object
-            self._iopticalsystem = OpticalSystem._pyzosapp.GetSystemAt(0) # PrimarySystem
-            if mode == 1:
-                self._iopticalsystem.MakeNonSequential()
-            OpticalSystem._instantiated = True
+            try:
+                OpticalSystem._pyzosapp = _PyZOSApp()                         # wrapped object
+            except InitializationError as e:
+                print('Error: {}'.format(str(e)))
+            except _pythoncom.com_error as e:
+                print("Error: Exception occured during ZOS initialization.")
+            else:
+                self._iopticalsystem = OpticalSystem._pyzosapp.GetSystemAt(0) # PrimarySystem
+                if mode == 1:
+                    self._iopticalsystem.MakeNonSequential()
+                OpticalSystem._instantiated = True
 
         # Store ZOS IOpticalSystem's base class(es)
         self._base_cls_list = _inheritance_dict.get('IOpticalSystem', None)
@@ -291,7 +299,8 @@ class OpticalSystem(object):
                 _replicate_methods(_comclient.CastTo(self._iopticalsystem, base_cls_name), self)
 
         ## patch methods from ZOS IOpticalSystem to the wrapped object
-        _replicate_methods(self._iopticalsystem, self)
+        if self._iopticalsystem:
+            _replicate_methods(self._iopticalsystem, self)
 
     # Provide a way to make property calls without the prefix p, 
     def __getattr__(self, attrname):
