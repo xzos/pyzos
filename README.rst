@@ -10,6 +10,9 @@ Current revision
 Philosophy / Design Goals
 '''''''''''''''''''''''''
 
+**Please note** that the first 3 problems stated below arises only if the ZOS-API's COM interface is used with `PyWin32 <http://sourceforge.net/projects/pywin32/>`__.
+An alternative, and probably better, way to use the .NET interface of ZOS-API is through the `Python for .NET <http://pythonnet.sourceforge.net/>`__. 
+
 Problems
 ~~~~~~~~
 
@@ -40,7 +43,8 @@ The philosophy behind PyZOS is to make ZOS-API easier to use in Python by:
 * do all the above with as minimum coding as possible (i.e. do a lot by doing very little)
 
 These *enhancements* to ZOS-API using PyZOS library are documented in this (work in progress) 
-`Jupyter notebook <http://nbviewer.jupyter.org/github/pyzos/pyzos/blob/master/Examples/jupyter_notebooks/00_Enhancing_the_ZOS_API_Interface.ipynb>`__.   
+`Jupyter notebook <http://nbviewer.jupyter.org/github/indranilsinharoy/pyzos/blob/master/Examples/jupyter_notebooks/00_Enhancing_the_ZOS_API_Interface.ipynb>`__. 
+
 
 
 Example usage
